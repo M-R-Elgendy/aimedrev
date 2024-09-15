@@ -1,12 +1,16 @@
 import { Injectable, HttpException, HttpStatus, ConflictException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, User } from '@prisma/client'
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AxiosService } from '../axios/axios.service';
+import { compareSync, hashSync } from 'bcrypt';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 
 @Injectable()
 export class UserService {
 
   private readonly prisma: PrismaClient = new PrismaClient();
+  private readonly axiosService: AxiosService = new AxiosService();
 
   async emailSignUp(createUserDto: CreateUserDto) {
 
@@ -39,27 +43,53 @@ export class UserService {
           name: createUserDto.name,
           email: createUserDto.email,
           phone: createUserDto.phone || null,
-          password: createUserDto.password || null,
+          password: await this.hashPassword(createUserDto.password),
           countryId: createUserDto.country || null,
           speciality: createUserDto.speciality || null
         }
       });
 
-      delete user.password;
-      delete user.code;
-      delete user.createdAt;
-      delete user.updatedAt;
+      return {
+        message: 'User created successfully',
+        user: this.removeExtraAttrs([user])[0],
+        status: HttpStatus.CREATED
 
-      // TODO: send email confirmation
-
-      return user;
+      };
 
     } catch (error) {
       throw error;
     }
   }
 
-  async googleAuth() {
+  async googleAuth(googleAuthDto: GoogleAuthDto) {
+    const accessToken = googleAuthDto.accessToken;
+
+    const headers = {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${accessToken}`
+    };
+    const googleUser = await this.axiosService.get(accessToken, headers);
+
+    if (googleUser.status !== 200) {
+      throw new HttpException(googleUser.data, googleUser.status);
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: googleUser.data.email
+      },
+      select: {
+        id: true,
+        name: true,
+        countryId: true,
+        speciality: true,
+        createdAt: true,
+        email: true,
+        phone: true
+      }
+    });
+
+
 
   }
 
@@ -77,5 +107,36 @@ export class UserService {
 
   remove(id: number) {
     return `This action removes a #${id} user`;
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    try {
+      const hash = await hashSync(password, +process.env.SALT_ROUNDS);
+      return hash;
+    } catch (error) {
+      throw new Error('Error hashing password');
+    }
+  }
+
+  private async verifyPassword(password: string, hash: string): Promise<boolean> {
+    try {
+      const isMatch = await compareSync(password, hash);
+      return isMatch;
+    } catch (error) {
+      throw new Error('Error verifying password');
+    }
+  }
+
+  private removeExtraAttrs(users: User[]) {
+
+    return users.map(user => {
+      delete user.password;
+      delete user.code;
+      delete user.createdAt;
+      delete user.updatedAt;
+      delete user.token;
+      return user;
+    });
+
   }
 }

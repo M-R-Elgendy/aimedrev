@@ -1,4 +1,3 @@
-import { All } from '@nestjs/common';
 import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional, Allow } from 'class-validator';
 
 export enum USER_TYPES {
@@ -18,11 +17,8 @@ export class CreateUserDto {
     @IsNotEmpty()
     email: string;
 
-    @IsOptional()
     @IsString()
-    @Allow(undefined)
-    @Allow(null)
-    password: string | null;
+    password: string;
 
     @IsOptional()
     @IsString()
