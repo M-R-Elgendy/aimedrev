@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum USER_TYPES {
+  user
+  admin
+}
+
+enum FREQUENCY {
+  monthly
+  yearly
+  unlimited
+}
+
+model Country {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  ISOCode   String
+  name      String
+  phoneCode Int
+  User      User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Paln {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  globalPrice Int
+  egPrice     Int
+  description String
+  frequency   FREQUENCY
+  currency    String
+  qeriesCount Int       @default(0)
+  isActive    Boolean   @default(true)
+  users       User[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model User {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String     @unique
+  password       String?    @default("deful_pass")
+  phone          String?
+  speciality     String?
+  paidUser       Boolean    @default(false)
+  activeUntil    DateTime?
+  role           USER_TYPES @default(user)
+  token          String?
+  emailVerified  Boolean    @default(false)
+  phoneVerified  Boolean    @default(false)
+  autoRenewal    Boolean    @default(false)
+  code           String?
+  socialProvider String?    @default("")
+  blocked        Boolean?   @default(false)
+  isDeleted      Boolean?   @default(false)
+  Paln           Paln?      @relation(fields: [palnId], references: [id])
+  palnId         String?    @db.ObjectId
+
+  Country   Country? @relation(fields: [countryId], references: [id])
+  countryId String?  @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name, email, phone, paidUser])
+}
