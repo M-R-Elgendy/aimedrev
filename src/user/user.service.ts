@@ -2,141 +2,84 @@ import { Injectable, HttpException, HttpStatus, ConflictException } from '@nestj
 import { PrismaClient, User } from '@prisma/client'
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AxiosService } from '../axios/axios.service';
-import { compareSync, hashSync } from 'bcrypt';
-import { GoogleAuthDto } from './dto/google-auth.dto';
 
 @Injectable()
 export class UserService {
 
   private readonly prisma: PrismaClient = new PrismaClient();
-  private readonly axiosService: AxiosService = new AxiosService();
 
-  async emailSignUp(createUserDto: CreateUserDto) {
+  findAll() {
+    return `This action returns all user`;
+  }
 
+  async findOne(id: string) {
     try {
-
-      const foundedUser = await this.prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: createUserDto.email },
-            { phone: createUserDto.phone }
-          ]
-        },
+      const user = await this.prisma.user.findFirst({
+        where: { id: id, isDeleted: false },
         select: {
           id: true,
           name: true,
-          countryId: true,
-          speciality: true,
-          createdAt: true,
           email: true,
-          phone: true
+          phone: true,
+          speciality: true,
+          paidUser: true,
+          activeUntil: true,
+          role: true,
+          emailVerified: true,
+          phoneVerified: true,
+          socialProvider: true,
+          isBlocked: true,
+          googleData: {
+            select: {
+              picture: true
+            }
+          },
+          Country: {
+            select: {
+              name: true,
+              phoneCode: true,
+              ISOCode: true
+            }
+          },
+          Paln: {
+            select: {
+              title: true,
+              description: true,
+              frequency: true,
+              qeriesCount: true
+            }
+          }
         }
       });
 
-      if (foundedUser) {
-        throw new ConflictException({ message: 'User already exists', foundedUser, status: HttpStatus.CONFLICT });
-      }
-
-      const user = await this.prisma.user.create({
-        data: {
-          name: createUserDto.name,
-          email: createUserDto.email,
-          phone: createUserDto.phone || null,
-          password: await this.hashPassword(createUserDto.password),
-          countryId: createUserDto.country || null,
-          speciality: createUserDto.speciality || null
-        }
-      });
-
-      return {
-        message: 'User created successfully',
-        user: this.removeExtraAttrs([user])[0],
-        status: HttpStatus.CREATED
-
-      };
+      if (!user) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
+      return user;
 
     } catch (error) {
       throw error;
     }
   }
 
-  async googleAuth(googleAuthDto: GoogleAuthDto) {
-    const accessToken = googleAuthDto.accessToken;
-
-    const headers = {
-      "Content-Type": "application/json",
-      'Authorization': `Bearer ${accessToken}`
-    };
-    const googleUser = await this.axiosService.get(accessToken, headers);
-
-    if (googleUser.status !== 200) {
-      throw new HttpException(googleUser.data, googleUser.status);
-    }
-
-    const user = await this.prisma.user.findFirst({
-      where: {
-        email: googleUser.data.email
-      },
-      select: {
-        id: true,
-        name: true,
-        countryId: true,
-        speciality: true,
-        createdAt: true,
-        email: true,
-        phone: true
-      }
-    });
-
-
-
-  }
-
-  findAll() {
-    return `This action returns all user`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
-
   update(id: number, updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} user`;
   }
 
-  remove(id: number) {
+  async remove(id: number) {
     return `This action removes a #${id} user`;
   }
 
-  private async hashPassword(password: string): Promise<string> {
+  async block(id: string) {
     try {
-      const hash = await hashSync(password, +process.env.SALT_ROUNDS);
-      return hash;
+      const user = await this.prisma.user.update({
+        where: { id: id },
+        data: { isBlocked: true }
+      });
+      return { message: 'User blocked successfully', status: HttpStatus.OK, user };
     } catch (error) {
-      throw new Error('Error hashing password');
+      throw error;
     }
   }
 
-  private async verifyPassword(password: string, hash: string): Promise<boolean> {
-    try {
-      const isMatch = await compareSync(password, hash);
-      return isMatch;
-    } catch (error) {
-      throw new Error('Error verifying password');
-    }
-  }
 
-  private removeExtraAttrs(users: User[]) {
-
-    return users.map(user => {
-      delete user.password;
-      delete user.code;
-      delete user.createdAt;
-      delete user.updatedAt;
-      delete user.token;
-      return user;
-    });
-
-  }
 }

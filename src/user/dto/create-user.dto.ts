@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional, Allow } from 'class-validator';
 
 export enum USER_TYPES {
@@ -15,6 +16,7 @@ export class CreateUserDto {
 
     @IsEmail()
     @IsNotEmpty()
+    @Transform(({ value }) => value.toLowerCase())
     email: string;
 
     @IsString()

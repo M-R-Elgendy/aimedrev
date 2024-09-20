@@ -7,11 +7,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
-  @Post('signup')
-  emailSignUp(@Body() createUserDto: CreateUserDto) {
-    return this.userService.emailSignUp(createUserDto);
-  }
-
   @Get()
   findAll() {
     return this.userService.findAll();
@@ -19,7 +14,7 @@ export class UserController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+    return this.userService.findOne(id);
   }
 
   @Patch(':id')

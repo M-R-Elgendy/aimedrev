@@ -43,29 +43,43 @@ model Paln {
   updatedAt   DateTime  @updatedAt
 }
 
+model GoogleData {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  sub            String
+  name           String
+  given_name     String
+  family_name    String
+  picture        String
+  email          String  @unique
+  email_verified Boolean
+  User           User[]
+}
+
 model User {
   id             String     @id @default(auto()) @map("_id") @db.ObjectId
   name           String
   email          String     @unique
-  password       String?    @default("deful_pass")
+  password       String?
   phone          String?
   speciality     String?
   paidUser       Boolean    @default(false)
   activeUntil    DateTime?
   role           USER_TYPES @default(user)
-  token          String?
   emailVerified  Boolean    @default(false)
   phoneVerified  Boolean    @default(false)
   autoRenewal    Boolean    @default(false)
   code           String?
-  socialProvider String?    @default("")
-  blocked        Boolean?   @default(false)
+  socialProvider String?
+  isBlocked      Boolean?   @default(false)
   isDeleted      Boolean?   @default(false)
   Paln           Paln?      @relation(fields: [palnId], references: [id])
   palnId         String?    @db.ObjectId
 
   Country   Country? @relation(fields: [countryId], references: [id])
   countryId String?  @db.ObjectId
+
+  googleData   GoogleData? @relation(fields: [googleDataId], references: [id])
+  googleDataId String?     @db.ObjectId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
