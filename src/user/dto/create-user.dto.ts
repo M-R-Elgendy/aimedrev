@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional, Allow } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional } from 'class-validator';
 
 export enum USER_TYPES {
     USER = 'user',

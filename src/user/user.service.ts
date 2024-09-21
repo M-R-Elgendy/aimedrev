@@ -41,7 +41,7 @@ export class UserService {
               ISOCode: true
             }
           },
-          Paln: {
+          Plan: {
             select: {
               title: true,
               description: true,

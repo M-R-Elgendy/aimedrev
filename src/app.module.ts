@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AxiosService } from './axios/axios.service';
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { PlanModule } from './plan/plan.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 
     UserModule,
     AuthModule,
+    PlanModule,
   ],
   controllers: [AppController],
   providers: [AppService, AxiosService],

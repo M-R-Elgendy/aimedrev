@@ -28,16 +28,16 @@ model Country {
   updatedAt DateTime @updatedAt
 }
 
-model Paln {
+model Plan {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   title       String
+  description String
   globalPrice Int
   egPrice     Int
-  description String
   frequency   FREQUENCY
-  currency    String
   qeriesCount Int       @default(0)
   isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
   users       User[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -72,8 +72,8 @@ model User {
   socialProvider String?
   isBlocked      Boolean?   @default(false)
   isDeleted      Boolean?   @default(false)
-  Paln           Paln?      @relation(fields: [palnId], references: [id])
-  palnId         String?    @db.ObjectId
+  Plan           Plan?      @relation(fields: [planId], references: [id])
+  planId         String?    @db.ObjectId
 
   Country   Country? @relation(fields: [countryId], references: [id])
   countryId String?  @db.ObjectId

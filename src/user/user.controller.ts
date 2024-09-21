@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ObjectIdDto } from 'src/global/DTOs/object-id.dto';
 
 @Controller('users')
 export class UserController {
@@ -13,8 +14,8 @@ export class UserController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
+  findOne(@Param() params: ObjectIdDto) {
+    return this.userService.findOne(params.id);
   }
 
   @Patch(':id')
