@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { EmailLogInDto } from './dto/email-login.dto';
 import { EmailSignUpDto } from './dto/email-signup.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
-import { EmailVerificationDto } from './dto/email-verification.dto';
+import { EmailVerificationDto, SendOTPDto } from './dto/email-verification.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
@@ -28,6 +28,11 @@ export class AuthController {
   getUserFromToken(@Headers('Authorization') authHeader: string) {
     const token = authHeader.replace('Bearer ', '');
     return this.authService.getUserFromToken(token);
+  }
+
+  @Post("/resend-otp")
+  resendOTP(@Body() sendOTPDto: SendOTPDto) {
+    return this.authService.resendOTP(sendOTPDto);
   }
 
   @Post("/verify-email")

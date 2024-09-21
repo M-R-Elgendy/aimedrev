@@ -8,14 +8,12 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { EmailLogInDto } from './dto/email-login.dto';
 import { EmailSignUpDto } from './dto/email-signup.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
-import { EmailVerificationDto } from './dto/email-verification.dto';
+import { EmailVerificationDto, SendOTPDto } from './dto/email-verification.dto';
 
 import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
 @Injectable()
 export class AuthService {
-
-  // constructor(private readonly emailService: EmailService) {}
 
   constructor(private readonly mailService: MailerService) { }
   private readonly prisma: PrismaClient = new PrismaClient();
@@ -50,7 +48,7 @@ export class AuthService {
         }
       });
 
-      // await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
+      await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
       const token = JWT.sign({ id: user.id, email: user.email, name: user.name }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
       return {
@@ -177,6 +175,44 @@ export class AuthService {
       if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
 
       return user;
+    } catch (error) {
+      throw error;
+    }
+
+  }
+
+  async resendOTP(sendOTPDto: SendOTPDto) {
+
+    try {
+
+      const user = await this.prisma.user.findFirst({
+        where: {
+          email: sendOTPDto.email,
+          isDeleted: false
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          code: true,
+          createdAt: true,
+          socialProvider: true,
+          isBlocked: true,
+          emailVerified: true
+        }
+      });
+
+      if (!user || user?.socialProvider != null) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
+      if (user.emailVerified) throw new HttpException({ message: 'User already verified', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+
+      user.code = this.utils.generateOTP(+process.env.OTP_LENGTH || 6);
+      await this.prisma.user.update({ where: { id: user.id }, data: { code: user.code } });
+
+      await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
+
+      return { message: 'OTP sent successfully', status: HttpStatus.OK };
+
     } catch (error) {
       throw error;
     }
