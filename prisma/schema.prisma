@@ -32,8 +32,8 @@ model Plan {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   description String
-  globalPrice Int
-  egPrice     Int
+  globalPrice Float
+  egPrice     Float
   frequency   FREQUENCY
   qeriesCount Int       @default(0)
   isActive    Boolean   @default(true)

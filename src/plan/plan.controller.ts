@@ -24,8 +24,8 @@ export class PlanController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
-    return this.planService.update(+id, updatePlanDto);
+  update(@Param() params: ObjectIdDto, @Body() updatePlanDto: UpdatePlanDto) {
+    return this.planService.update(params.id, updatePlanDto);
   }
 
   @Delete(':id')

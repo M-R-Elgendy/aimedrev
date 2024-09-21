@@ -57,8 +57,22 @@ export class PlanService {
     }
   }
 
-  update(id: number, updatePlanDto: UpdatePlanDto) {
-    return `This action updates a #${id} plan`;
+  async update(id: string, updatePlanDto: UpdatePlanDto) {
+    try {
+      const plan = await this.prisma.plan.findFirst({
+        where: { id: id, isDeleted: false },
+      });
+
+      if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      const updatedPlan = await this.prisma.plan.update({ where: { id: id }, data: updatePlanDto });
+      return {
+        message: "Plan updated successfully",
+        plan: updatedPlan,
+        status: HttpStatus.OK
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 
   async remove(id: string) {
