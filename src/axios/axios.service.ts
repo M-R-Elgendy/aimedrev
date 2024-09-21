@@ -22,4 +22,13 @@ export class AxiosService {
         }
     }
 
+    async anonRequest(config: { method: string, url: string, headers: any, data?: any }) {
+        try {
+            const response = await axios.request(config);
+            return { status: 200, data: response.data };
+        } catch (error) {
+            return { status: 400, data: error.response.data.message };
+        }
+
+    }
 }

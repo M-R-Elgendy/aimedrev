@@ -117,4 +117,18 @@ export class PlanService {
       throw error;
     }
   }
+
+  async supscribe(id: string) {
+    const plan = await this.prisma.plan.findFirst({
+      where: { id: id, isActive: true, isDeleted: false },
+    });
+
+    if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+
+    return {
+      message: "Plan subscribed successfully",
+      plan: plan,
+      status: HttpStatus.OK
+    }
+  }
 }

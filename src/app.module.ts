@@ -7,6 +7,7 @@ import { AxiosService } from './axios/axios.service';
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { PlanModule } from './plan/plan.module';
+import { RevenuecatService } from './revenuecat/revenuecat.service';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { PlanModule } from './plan/plan.module';
     PlanModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AxiosService],
+  providers: [AppService, AxiosService, RevenuecatService],
 
 })
 export class AppModule { }
