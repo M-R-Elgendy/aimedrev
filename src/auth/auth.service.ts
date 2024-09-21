@@ -1,22 +1,30 @@
 import { Injectable, HttpException, HttpStatus, ConflictException } from '@nestjs/common';
+import * as JWT from 'jsonwebtoken'
+import { compareSync, hashSync } from 'bcrypt';
+import { PrismaClient, User } from '@prisma/client'
+import { AxiosService } from '../axios/axios.service';
+import { MailerService } from '@nestjs-modules/mailer';
+
 import { EmailLogInDto } from './dto/email-login.dto';
 import { EmailSignUpDto } from './dto/email-signup.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
-import { PrismaClient, User } from '@prisma/client'
-import { AxiosService } from '../axios/axios.service';
-import { compareSync, hashSync } from 'bcrypt';
-import * as JWT from 'jsonwebtoken'
-import { UserService } from 'src/user/user.service';
+import { EmailVerificationDto } from './dto/email-verification.dto';
 
+import { UserService } from 'src/user/user.service';
+import { Utlis } from 'src/global/utlis';
 @Injectable()
 export class AuthService {
 
+  // constructor(private readonly emailService: EmailService) {}
+
+  constructor(private readonly mailService: MailerService) { }
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly axiosService: AxiosService = new AxiosService();
   private readonly userService: UserService = new UserService();
+  private readonly utils: Utlis = new Utlis();
+
 
   async register(emailSignUpDto: EmailSignUpDto) {
-
     try {
 
       const foundedUser = await this.prisma.user.findFirst({
@@ -38,9 +46,11 @@ export class AuthService {
           name: emailSignUpDto.name,
           email: emailSignUpDto.email,
           password: await this.hashPassword(emailSignUpDto.password),
+          code: this.utils.generateOTP(+process.env.OTP_LENGTH || 6)
         }
       });
 
+      // await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
       const token = JWT.sign({ id: user.id, email: user.email, name: user.name }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
       return {
@@ -173,6 +183,48 @@ export class AuthService {
 
   }
 
+  async verifyEmail(emailVerificationDto: EmailVerificationDto) {
+
+    try {
+
+      const user = await this.prisma.user.findFirst({
+        where: {
+          email: emailVerificationDto.email,
+          isDeleted: false
+        },
+        select: {
+          id: true,
+          code: true,
+          socialProvider: true,
+          isBlocked: true,
+          emailVerified: true
+        }
+      });
+
+      if (!user || user?.socialProvider != null) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
+      if (user.code != emailVerificationDto.code) throw new HttpException({ message: 'Invalid code', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true, code: null }
+      });
+
+      return { message: 'User verified successfully', status: HttpStatus.OK };
+
+    } catch (error) {
+      throw error;
+    }
+
+  }
+
+  private async sendEmail(email: string, subject: string, text: string) {
+    await this.mailService.sendMail({
+      to: email,
+      subject: subject,
+      text: text
+    });
+  }
 
   private async hashPassword(password: string): Promise<string> {
     try {
