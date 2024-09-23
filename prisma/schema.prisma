@@ -19,11 +19,12 @@ enum FREQUENCY {
 }
 
 model Country {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  ISOCode   String
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  ISOCode   String  @unique
   name      String
-  phoneCode Int
+  phoneCode String  @unique
   User      User[]
+  isDeleted Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -8,6 +8,8 @@ import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { PlanModule } from './plan/plan.module';
 import { RevenuecatService } from './revenuecat/revenuecat.service';
+import { StripeService } from './stripe/stripe.service';
+import { CountryModule } from './country/country.module';
 
 @Module({
   imports: [
@@ -34,9 +36,10 @@ import { RevenuecatService } from './revenuecat/revenuecat.service';
     UserModule,
     AuthModule,
     PlanModule,
+    CountryModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AxiosService, RevenuecatService],
+  providers: [AppService, AxiosService, RevenuecatService, StripeService],
 
 })
 export class AppModule { }

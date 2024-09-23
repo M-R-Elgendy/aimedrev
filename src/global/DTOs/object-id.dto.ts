@@ -1,6 +1,6 @@
 import { IsMongoId } from "class-validator";
 
 export class ObjectIdDto {
-    @IsMongoId({ message: "Invalid plan Id" })
+    @IsMongoId({ message: "Invalid Id" })
     id: string;
 }

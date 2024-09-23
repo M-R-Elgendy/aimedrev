@@ -13,7 +13,7 @@ export class AxiosService {
         }
     }
 
-    async get(url: string, headers: object): Promise<any> {
+    async get(url: string, headers?: object): Promise<any> {
         try {
             const response = await axios.get(url, { headers });
             return { status: 200, data: response.data };
