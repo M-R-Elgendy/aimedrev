@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { GeneralExceptionFilter } from './global/filters/exception.filter';
 import { BadRequestException, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
@@ -26,9 +27,12 @@ async function bootstrap() {
     }),
   );
 
+  app.setGlobalPrefix('api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.useGlobalFilters(new GeneralExceptionFilter());
 
   await app.listen(process.env.PORT || 3000);
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
+
 }
 bootstrap();

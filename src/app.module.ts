@@ -10,6 +10,8 @@ import { PlanModule } from './plan/plan.module';
 import { RevenuecatService } from './revenuecat/revenuecat.service';
 import { StripeService } from './stripe/stripe.service';
 import { CountryModule } from './country/country.module';
+import { TransactionModule } from './transaction/transaction.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { CountryModule } from './country/country.module';
     AuthModule,
     PlanModule,
     CountryModule,
+    TransactionModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService, AxiosService, RevenuecatService, StripeService],
