@@ -12,7 +12,7 @@ import { EmailVerificationDto, SendOTPDto } from './dto/email-verification.dto';
 
 import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
-import { SessionToken } from './types';
+import { SessionToken } from '../global/types';
 @Injectable()
 export class AuthService {
 
@@ -53,7 +53,7 @@ export class AuthService {
       });
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
-      const token = await this.jwtService.signAsync({ id: user.id }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
 
       return {
         message: 'User created successfully',
@@ -85,7 +85,8 @@ export class AuthService {
           phone: true,
           password: true,
           socialProvider: true,
-          isBlocked: true
+          isBlocked: true,
+          role: true
         }
       });
 
@@ -95,7 +96,7 @@ export class AuthService {
       const isPasswordMatch = await this.verifyPassword(emailLoginDto.password, user.password);
       if (!isPasswordMatch) throw new HttpException({ message: 'Invalid credentials', status: HttpStatus.UNAUTHORIZED }, HttpStatus.UNAUTHORIZED);
 
-      const token = await this.jwtService.signAsync({ id: user.id }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
       return { message: 'User logged in successfully', status: HttpStatus.OK, token };
 
     } catch (error) {
@@ -131,7 +132,8 @@ export class AuthService {
           email: true,
           phone: true,
           socialProvider: true,
-          isBlocked: true
+          isBlocked: true,
+          role: true
         }
       });
 
@@ -156,7 +158,7 @@ export class AuthService {
         });
       }
 
-      const token = await this.jwtService.signAsync({ id: user.id }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
 
       return { message: 'User created successfully', status: HttpStatus.CREATED, token };
 
