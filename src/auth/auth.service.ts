@@ -1,5 +1,5 @@
 import { Injectable, HttpException, HttpStatus, ConflictException } from '@nestjs/common';
-import * as JWT from 'jsonwebtoken'
+import { JwtService } from '@nestjs/jwt';
 import { compareSync, hashSync } from 'bcrypt';
 import { PrismaClient, User } from '@prisma/client'
 import { AxiosService } from '../axios/axios.service';
@@ -12,10 +12,14 @@ import { EmailVerificationDto, SendOTPDto } from './dto/email-verification.dto';
 
 import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
+import { SessionToken } from './types';
 @Injectable()
 export class AuthService {
 
-  constructor(private readonly mailService: MailerService) { }
+  constructor(
+    private readonly mailService: MailerService,
+  ) { }
+  private readonly jwtService: JwtService = new JwtService();
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly axiosService: AxiosService = new AxiosService();
   private readonly userService: UserService = new UserService();
@@ -49,7 +53,7 @@ export class AuthService {
       });
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
-      const token = JWT.sign({ id: user.id, email: user.email, name: user.name }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      const token = await this.jwtService.signAsync({ id: user.id }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
 
       return {
         message: 'User created successfully',
@@ -91,7 +95,7 @@ export class AuthService {
       const isPasswordMatch = await this.verifyPassword(emailLoginDto.password, user.password);
       if (!isPasswordMatch) throw new HttpException({ message: 'Invalid credentials', status: HttpStatus.UNAUTHORIZED }, HttpStatus.UNAUTHORIZED);
 
-      const token = JWT.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+      const token = await this.jwtService.signAsync({ id: user.id }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
       return { message: 'User logged in successfully', status: HttpStatus.OK, token };
 
     } catch (error) {
@@ -152,7 +156,7 @@ export class AuthService {
         });
       }
 
-      const token = JWT.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+      const token = await this.jwtService.signAsync({ id: user.id }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
 
       return { message: 'User created successfully', status: HttpStatus.CREATED, token };
 
@@ -167,7 +171,7 @@ export class AuthService {
     if (!token) throw new HttpException({ message: 'Invalid token', status: HttpStatus.UNAUTHORIZED }, HttpStatus.UNAUTHORIZED);
     try {
       const tokenValue = token.replace('Bearer ', '');
-      const decoded = JWT.verify(tokenValue, process.env.JWT_SECRET) as JWT.JwtPayload;
+      const decoded = await this.jwtService.verifyAsync(tokenValue, { secret: process.env.JWT_SECRET }) as SessionToken;
 
       const user = await this.userService.findOne(decoded.id);
 

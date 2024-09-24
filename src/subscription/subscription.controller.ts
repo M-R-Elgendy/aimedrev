@@ -5,9 +5,9 @@ import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 
 @Controller('subscription')
 export class SubscriptionController {
-  constructor(private readonly subscriptionService: SubscriptionService) {}
+  constructor(private readonly subscriptionService: SubscriptionService) { }
 
-  @Post()
+  @Post('/')
   create(@Body() createSubscriptionDto: CreateSubscriptionDto) {
     return this.subscriptionService.create(createSubscriptionDto);
   }

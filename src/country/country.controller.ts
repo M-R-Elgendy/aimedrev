@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { CountryService } from './country.service';
 import { CreateCountryDto } from './dto/create-country.dto';
 import { UpdateCountryDto } from './dto/update-country.dto';
 import { ObjectIdDto } from 'src/global/DTOs/object-id.dto';
-
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 @Controller('country')
+@UseGuards(AuthGuard)
 export class CountryController {
   constructor(private readonly countryService: CountryService) { }
 

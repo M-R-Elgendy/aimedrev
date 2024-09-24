@@ -9,4 +9,5 @@ export class StripeService {
         const session = await stripe.checkout.sessions.create(date);
         return session;
     };
+
 }

@@ -3,16 +3,17 @@ import { CreateCountryDto } from './dto/create-country.dto';
 import { UpdateCountryDto } from './dto/update-country.dto';
 import { PrismaClient, Prisma } from '@prisma/client'
 import { AxiosService } from 'src/axios/axios.service';
-
+import { AuthContext } from 'src/auth/auth.context';
+import { Console } from 'console';
 @Injectable()
 export class CountryService {
+  constructor(private authContext: AuthContext) { }
 
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly axiosService: AxiosService = new AxiosService();
 
   async create(createCountryDto: CreateCountryDto) {
     try {
-
       const isValidData = await this.isValidCountryData(createCountryDto);
       if (!isValidData) throw new BadRequestException("Invalid country data");
 
