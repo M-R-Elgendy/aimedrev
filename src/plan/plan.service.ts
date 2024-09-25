@@ -124,7 +124,7 @@ export class PlanService {
     }
   }
 
-  async supscribe(id: string) {
+  async checkout(id: string) {
     const plan = await this.prisma.plan.findFirst({
       where: { id: id, isActive: true, isDeleted: false },
     });

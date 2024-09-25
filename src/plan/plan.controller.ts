@@ -59,7 +59,7 @@ export class PlanController {
   @Get(':id/checkout')
   @UseGuards(AuthGuard, RoleGuard)
   @Roles([Role.USER])
-  supscribe(@Param() params: ObjectIdDto) {
-    return this.planService.supscribe(params.id);
+  checkout(@Param() params: ObjectIdDto) {
+    return this.planService.checkout(params.id);
   }
 }
