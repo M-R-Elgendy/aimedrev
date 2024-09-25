@@ -1,6 +1,6 @@
 import { IsBoolean, IsEnum, IsNumber, IsString, Length } from "class-validator";
 
-enum FREQUENCY {
+export enum FREQUENCY {
     monthly = 'monthly',
     yearly = 'yearly',
     unlimited = 'unlimited'

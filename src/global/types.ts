@@ -7,4 +7,5 @@ export enum Role {
 export type SessionToken = {
     id: string;
     role: Role;
+    IP: string;
 }

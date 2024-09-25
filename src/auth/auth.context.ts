@@ -7,7 +7,7 @@ import { Role, SessionToken } from '../global/types';
 export class AuthContext {
     private id: string;
     private role: Role;
-
+    private IP: string;
 
     constructor() { }
 
@@ -15,13 +15,15 @@ export class AuthContext {
         if (!this.id) return null;
         return {
             id: this.id,
-            role: this.role
+            role: this.role,
+            IP: this.IP
         };
     }
 
     setUser(user: SessionToken) {
         this.id = user.id;
         this.role = user.role;
+        this.IP = user.IP;
     }
 }
 

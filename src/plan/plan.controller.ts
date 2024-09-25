@@ -55,4 +55,11 @@ export class PlanController {
   deactivate(@Param() params: ObjectIdDto) {
     return this.planService.planAcivity(params.id, false);
   }
+
+  @Get(':id/checkout')
+  @UseGuards(AuthGuard, RoleGuard)
+  @Roles([Role.USER])
+  supscribe(@Param() params: ObjectIdDto) {
+    return this.planService.supscribe(params.id);
+  }
 }
