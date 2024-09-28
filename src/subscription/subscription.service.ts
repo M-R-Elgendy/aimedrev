@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import Stripe from 'stripe';
 import { StripeService } from 'src/stripe/stripe.service';
-import { AuthContext } from 'src/auth/auth.context';
-import { Plan, PrismaClient, Subscription, User } from '@prisma/client'
-
+import { PrismaClient, User, Subscription } from '@prisma/client';
+import * as moment from 'moment';
 @Injectable()
 export class SubscriptionService {
 
@@ -21,20 +20,63 @@ export class SubscriptionService {
       include: { user: true, plan: true }
     });
 
-    if (!subscription) throw new Error("Subscription not found");
+    if (!subscription) throw new NotFoundException("Subscription not found");
+    if (subscription.isVerified) throw new UnprocessableEntityException("Subscription already verified");
+
     const sessionData: any = subscription.stripeSession
 
     const updatedSessionData = await this.stripeService.getSession(sessionData.id);
 
     if (updatedSessionData.payment_status === 'paid' && updatedSessionData.status === 'complete') {
-      const updatedSubscription = await this.prisma.subscription.update({
-        where: { id: subscriptionId },
-        data: { isActive: true, stripeSession: updatedSessionData as object }
+
+      const transaction = await this.prisma.transaction.create({
+        data: {
+          paymentMethod: 'card',
+          stripeSession: updatedSessionData as object,
+          tran_ref: updatedSessionData.id,
+          amount: (updatedSessionData.amount_total / 100),
+          currency: updatedSessionData.currency,
+          userId: subscription.userId,
+          planId: subscription.planId
+        }
       });
 
-      // create transaction
+      const updatedSubscription = await this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          isActive: true,
+          isVerified: true,
+          stripeSession: updatedSessionData as object,
+          transactionId: transaction.id
+        }
+      });
       return updatedSubscription
     }
+
+  }
+
+  hasActiveSubscription(user: User & { Subscription: Subscription[] }) {
+
+    if (user.Subscription.length === 0) return false;
+
+    let isQuriesExpried: boolean = false, isTimeExpired: boolean = false;
+    const lastSubscription = user.Subscription[user.Subscription.length - 1];
+
+    if (!lastSubscription.isActive) return false;
+
+    if (lastSubscription.totalQueries > 0) {
+      isQuriesExpried = lastSubscription.usedQuries >= lastSubscription.totalQueries;
+    }
+
+    if (lastSubscription.endDate) {
+      const lastOfToday = moment().endOf('day').toDate();
+      const lastOfSubscription = moment(lastSubscription.endDate).endOf('day').toDate();
+      isTimeExpired = lastOfSubscription <= lastOfToday;
+    }
+
+    if (lastSubscription.totalQueries > 0 && lastSubscription.endDate) return !isQuriesExpried && !isTimeExpired;
+    if (lastSubscription.endDate) return !isTimeExpired;
+    if (lastSubscription.totalQueries > 0) return !isQuriesExpried;
 
   }
 

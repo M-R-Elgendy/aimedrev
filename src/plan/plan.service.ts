@@ -5,9 +5,9 @@ import { Plan, PrismaClient, Subscription, User } from '@prisma/client'
 import { AuthContext } from 'src/auth/auth.context';
 import { Utlis } from 'src/global/utlis';
 import { StripeService } from 'src/stripe/stripe.service';
-import * as moment from 'moment';
+import { SubscriptionService } from 'src/subscription/subscription.service';
 import Stripe from 'stripe';
-
+import * as moment from 'moment';
 @Injectable()
 export class PlanService {
 
@@ -15,6 +15,7 @@ export class PlanService {
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly utlis: Utlis = new Utlis();
   private readonly stripeService: StripeService = new StripeService();
+  private readonly subscriptionService: SubscriptionService = new SubscriptionService();
 
   async create(createPlanDto: CreatePlanDto) {
     try {
@@ -146,7 +147,7 @@ export class PlanService {
       if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
       if (!user) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
 
-      const hasActiveSubscription = this.hasActiveSubscription(user);
+      const hasActiveSubscription = this.subscriptionService.hasActiveSubscription(user);
       if (hasActiveSubscription) {
         throw new HttpException({ message: 'User already have a plan', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST)
       }
@@ -280,30 +281,5 @@ export class PlanService {
     } catch (error) {
       throw error;
     }
-  }
-
-  private hasActiveSubscription(user: User & { Subscription: Subscription[] }) {
-
-    if (user.Subscription.length === 0) return false;
-
-    let isQuriesExpried: boolean = false, isTimeExpired: boolean = false;
-    const lastSubscription = user.Subscription[user.Subscription.length - 1];
-
-    if (!lastSubscription.isActive) return false;
-
-    if (lastSubscription.totalQueries > 0) {
-      isQuriesExpried = lastSubscription.usedQuries >= lastSubscription.totalQueries;
-    }
-
-    if (lastSubscription.endDate) {
-      const lastOfToday = moment().endOf('day').toDate();
-      const lastOfSubscription = moment(lastSubscription.endDate).endOf('day').toDate();
-      isTimeExpired = lastOfSubscription <= lastOfToday;
-    }
-
-    if (lastSubscription.totalQueries > 0 && lastSubscription.endDate) return !isQuriesExpried && !isTimeExpired;
-    if (lastSubscription.endDate) return !isTimeExpired;
-    if (lastSubscription.totalQueries > 0) return !isQuriesExpried;
-
   }
 }

@@ -1,14 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { ObjectIdDto } from 'src/global/DTOs/object-id.dto';
-
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { Roles } from '../global/decorators/role.decorator';
+import { Role } from 'src/global/types';
 
 @Controller('subscription')
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) { }
 
-  @Get('/webhook/verify/:id') // Subscription ID
+  @UseGuards(AuthGuard)
+  @Get('/verify/:id') // Subscription ID
   async verify(@Param() params: ObjectIdDto) {
     return this.subscriptionService.verify(params.id)
   }
+
 }

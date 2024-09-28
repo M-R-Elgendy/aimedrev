@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsObject, IsMongoId } from 'class-validator';
+import { IsString, IsNotEmpty, IsObject, IsMongoId, IsInt, IsPositive } from 'class-validator';
 
 export class CreateTransactionDto {
     @IsString()
@@ -7,11 +7,21 @@ export class CreateTransactionDto {
 
     @IsObject()
     @IsNotEmpty()
-    stripe: object;
+    stripeSession: object;
 
     @IsString()
     @IsNotEmpty()
     tran_ref: string;
+
+    @IsInt()
+    @IsPositive()
+    amount: number;
+
+
+    @IsString()
+    @IsNotEmpty()
+    @IsMongoId()
+    currency: string;
 
     @IsString()
     @IsNotEmpty()
