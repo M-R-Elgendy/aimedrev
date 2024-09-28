@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { HttpStatus, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import Stripe from 'stripe';
 import { StripeService } from 'src/stripe/stripe.service';
 import { PrismaClient, User, Subscription } from '@prisma/client';
@@ -9,6 +9,120 @@ export class SubscriptionService {
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly stripeService: StripeService = new StripeService();
 
+  async find() {
+    try {
+
+      const data = await this.prisma.subscription.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          isActive: true,
+          isVerified: true,
+          totalQueries: true,
+          usedQuries: true,
+          endDate: true,
+          plan: {
+            select: {
+              id: true,
+              title: true,
+              egPrice: true,
+              globalPrice: true,
+              description: true
+            }
+          },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              googleData: {
+                select: {
+                  picture: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      return {
+        message: 'Subscriptions fetched successfully',
+        status: HttpStatus.OK,
+        data
+      }
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findOne(id: string) {
+    try {
+      const data = await this.prisma.subscription.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          isActive: true,
+          isVerified: true,
+          totalQueries: true,
+          usedQuries: true,
+          endDate: true,
+          transactionId: true,
+          plan: {
+            select: {
+              id: true,
+              title: true,
+              egPrice: true,
+              globalPrice: true,
+              description: true
+            }
+          },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              googleData: {
+                select: {
+                  picture: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!data) throw new NotFoundException("Subscription not found");
+
+      return {
+        message: 'Subscription fetched successfully',
+        status: HttpStatus.OK,
+        data
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async delete(id: string) {
+    try {
+      const subscription = (await this.findOne(id)).data;
+
+      if (subscription.isActive) throw new UnprocessableEntityException("Subscription is active");
+      if (subscription.isVerified) throw new UnprocessableEntityException("Subscription is verified");
+
+      await this.prisma.subscription.update({ where: { id: id }, data: { isDeleted: true } });
+
+      return {
+        message: 'Subscription deleted successfully',
+        status: HttpStatus.OK,
+        data: {}
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async checkout(stripeSessionObject: Stripe.Checkout.SessionCreateParams) {
     return await this.stripeService.createCheckOutSession(stripeSessionObject)
   }
@@ -16,7 +130,7 @@ export class SubscriptionService {
   async verify(subscriptionId: string) {
 
     const subscription = await this.prisma.subscription.findUnique({
-      where: { id: subscriptionId },
+      where: { id: subscriptionId, isDeleted: false },
       include: { user: true, plan: true }
     });
 
@@ -63,6 +177,8 @@ export class SubscriptionService {
     const lastSubscription = user.Subscription[user.Subscription.length - 1];
 
     if (!lastSubscription.isActive) return false;
+    if (!lastSubscription.isVerified) return false;
+    if (lastSubscription.isDeleted) return false;
 
     if (lastSubscription.totalQueries > 0) {
       isQuriesExpried = lastSubscription.usedQuries >= lastSubscription.totalQueries;

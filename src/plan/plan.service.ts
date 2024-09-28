@@ -175,7 +175,6 @@ export class PlanService {
         message: "Session created successfully",
         createdSupscription,
         checkoutSessionURL: checkoutSession.url,
-        checkoutSession,
         status: HttpStatus.OK
       }
 
