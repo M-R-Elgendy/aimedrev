@@ -1,26 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
-import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import Stripe from 'stripe';
+import { StripeService } from 'src/stripe/stripe.service';
+import { AuthContext } from 'src/auth/auth.context';
+import { Plan, PrismaClient, Subscription, User } from '@prisma/client'
 
 @Injectable()
 export class SubscriptionService {
-  create(createSubscriptionDto: CreateSubscriptionDto) {
-    return 'This action adds a new subscription';
+
+  private readonly prisma: PrismaClient = new PrismaClient();
+  private readonly stripeService: StripeService = new StripeService();
+
+  async checkout(stripeSessionObject: Stripe.Checkout.SessionCreateParams) {
+    return await this.stripeService.createCheckOutSession(stripeSessionObject)
   }
 
-  findAll() {
-    return `This action returns all subscription`;
+  async verify(subscriptionId: string) {
+
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { user: true, plan: true }
+    });
+
+    if (!subscription) throw new Error("Subscription not found");
+    const sessionData: any = subscription.stripeSession
+
+    const updatedSessionData = await this.stripeService.getSession(sessionData.id);
+
+    if (updatedSessionData.payment_status === 'paid' && updatedSessionData.status === 'complete') {
+      const updatedSubscription = await this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: { isActive: true, stripeSession: updatedSessionData as object }
+      });
+
+      // create transaction
+      return updatedSubscription
+    }
+
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} subscription`;
-  }
-
-  update(id: number, updateSubscriptionDto: UpdateSubscriptionDto) {
-    return `This action updates a #${id} subscription`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} subscription`;
-  }
 }

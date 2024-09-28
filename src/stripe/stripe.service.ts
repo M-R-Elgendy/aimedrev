@@ -10,4 +10,10 @@ export class StripeService {
         return session;
     };
 
+    // Get session by id
+    async getSession(id: string) {
+        const session = await stripe.checkout.sessions.retrieve(id);
+        return session;
+    }
+
 }

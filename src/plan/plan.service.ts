@@ -2,17 +2,19 @@ import { HttpStatus, Injectable, HttpException } from '@nestjs/common';
 import { CreatePlanDto, FREQUENCY } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Plan, PrismaClient, Subscription, User } from '@prisma/client'
-import { StripeService } from 'src/stripe/stripe.service';
 import { AuthContext } from 'src/auth/auth.context';
 import { Utlis } from 'src/global/utlis';
+import { StripeService } from 'src/stripe/stripe.service';
 import * as moment from 'moment';
+import Stripe from 'stripe';
+
 @Injectable()
 export class PlanService {
 
   constructor(private readonly authContext: AuthContext) { }
   private readonly prisma: PrismaClient = new PrismaClient();
-  private readonly stripeService: StripeService = new StripeService();
   private readonly utlis: Utlis = new Utlis();
+  private readonly stripeService: StripeService = new StripeService();
 
   async create(createPlanDto: CreatePlanDto) {
     try {
@@ -160,16 +162,19 @@ export class PlanService {
           totalQueries: plan.qeriesCount,
           price: price / 100,
           userId: this.authContext.getUser().id,
-          planId: plan.id,
+          planId: plan.id
         }
       });
 
-      const stripeSessionObject = this.generateStripeSessionObject(createdSupscription.id, userCountryCode, plan, price, endDate);
+      const stripeSessionObject: Stripe.Checkout.SessionCreateParams = this.generateStripeSessionObject(createdSupscription.id, userCountryCode, plan, price, user.email);
+      const checkoutSession = await this.stripeService.createCheckOutSession(stripeSessionObject);
+      await this.prisma.subscription.update({ where: { id: createdSupscription.id }, data: { stripeSession: checkoutSession as object } });
 
       return {
         message: "Session created successfully",
         createdSupscription,
-        stripeSessionObject,
+        checkoutSessionURL: checkoutSession.url,
+        checkoutSession,
         status: HttpStatus.OK
       }
 
@@ -229,12 +234,13 @@ export class PlanService {
     }
   }
 
-  private generateStripeSessionObject(supscriptionId: string, userCountryCode: string, plan: Plan, price: number, endDate: Date) {
+  private generateStripeSessionObject(supscriptionId: string, userCountryCode: string, plan: Plan, price: number, customerEmail: string): Stripe.Checkout.SessionCreateParams {
     try {
 
       return {
         client_reference_id: this.authContext.getUser().id,
-        success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK}/${supscriptionId}`,
+        customer_email: customerEmail,
+        success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${supscriptionId}`,
         cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
         line_items: [
           {
@@ -253,9 +259,9 @@ export class PlanService {
           planId: plan.id,
           period: plan.frequency,
           startDate: moment().format("YYYY-MM-DD"),
-          endDate: endDate,
           planTitle: plan.title,
           planDescription: plan.description,
+          supscriptionId: supscriptionId,
         },
         payment_method_types: ["card"],
         payment_method_options: {
@@ -300,5 +306,4 @@ export class PlanService {
     if (lastSubscription.totalQueries > 0) return !isQuriesExpried;
 
   }
-
 }
