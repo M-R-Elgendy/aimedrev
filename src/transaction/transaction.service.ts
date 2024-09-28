@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpStatus, NotFoundException } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { PrismaClient } from '@prisma/client';
@@ -17,12 +17,116 @@ export class TransactionService {
     }
   }
 
-  findAll() {
-    return `This action returns all transaction`;
+  async findAll() {
+    try {
+      const data = await this.prismaClient.transaction.findMany({
+        where: { isDeleted: false },
+        select: {
+          id: true,
+          paymentMethod: true,
+          tran_ref: true,
+          amount: true,
+          currency: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              googleData: {
+                select: {
+                  picture: true
+                }
+              }
+            }
+          },
+          plan: {
+            select: {
+              id: true,
+              title: true,
+              egPrice: true,
+              globalPrice: true,
+              description: true
+            }
+          },
+          Subscription: {
+            select: {
+              id: true,
+              startDate: true,
+              endDate: true,
+              totalQueries: true,
+              usedQuries: true,
+              isActive: true
+            }
+          }
+        }
+      });
+
+      return {
+        message: 'Transactions fetched successfully',
+        status: HttpStatus.OK,
+        data
+      }
+
+    } catch (error) {
+      throw error;
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} transaction`;
+  async findOne(id: string) {
+    try {
+      const data = await this.prismaClient.transaction.findUnique({
+        where: { id: id, isDeleted: false },
+        select: {
+          id: true,
+          paymentMethod: true,
+          tran_ref: true,
+          amount: true,
+          currency: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              googleData: {
+                select: {
+                  picture: true
+                }
+              }
+            }
+          },
+          plan: {
+            select: {
+              id: true,
+              title: true,
+              egPrice: true,
+              globalPrice: true,
+              description: true
+            }
+          },
+          Subscription: {
+            select: {
+              id: true,
+              startDate: true,
+              endDate: true,
+              totalQueries: true,
+              usedQuries: true,
+              isActive: true
+            }
+          }
+        }
+      });
+
+      if (!data) throw new NotFoundException("Transaction not found");
+
+      return {
+        message: 'Transactions fetched successfully',
+        status: HttpStatus.OK,
+        data
+      }
+
+    } catch (error) {
+      throw error;
+    }
   }
 
   update(id: string, updateTransactionDto: UpdateTransactionDto) {

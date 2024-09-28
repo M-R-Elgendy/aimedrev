@@ -19,9 +19,6 @@ export class CreateUserDto {
     @Transform(({ value }) => value.toLowerCase())
     email: string;
 
-    @IsString()
-    password: string;
-
     @IsOptional()
     @IsString()
     @IsNotEmpty()

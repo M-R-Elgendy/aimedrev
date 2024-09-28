@@ -13,13 +13,13 @@ export class SubscriptionController {
   @UseGuards(AuthGuard, RoleGuard)
   @Roles([Role.ADMIN])
   @Get()
-  async find() {
-    return this.subscriptionService.find()
+  async findAll() {
+    return this.subscriptionService.findAll()
   }
 
   @UseGuards(AuthGuard, RoleGuard)
   @Roles([Role.ADMIN])
-  @Get('/:id') // Subscription ID
+  @Get(':id') // Subscription ID
   async findOne(@Param() params: ObjectIdDto) {
     return this.subscriptionService.findOne(params.id)
   }

@@ -9,7 +9,7 @@ export class SubscriptionService {
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly stripeService: StripeService = new StripeService();
 
-  async find() {
+  async findAll() {
     try {
 
       const data = await this.prisma.subscription.findMany({
