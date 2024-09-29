@@ -1,13 +1,14 @@
 import { HttpStatus, Injectable, HttpException } from '@nestjs/common';
 import { CreatePlanDto, FREQUENCY } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
-import { Plan, PrismaClient, Subscription, User } from '@prisma/client'
+import { Plan, PrismaClient } from '@prisma/client'
 import { AuthContext } from 'src/auth/auth.context';
 import { Utlis } from 'src/global/utlis';
 import { StripeService } from 'src/stripe/stripe.service';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import Stripe from 'stripe';
 import * as moment from 'moment';
+
 @Injectable()
 export class PlanService {
 

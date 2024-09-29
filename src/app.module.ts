@@ -13,6 +13,7 @@ import { CountryModule } from './country/country.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AuthContextModule } from './auth/auth.context';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { AuthContextModule } from './auth/auth.context';
     CountryModule,
     TransactionModule,
     SubscriptionModule,
-    AuthContextModule
+    AuthContextModule,
+    ReviewsModule
   ],
   controllers: [AppController],
   providers: [AppService, AxiosService, RevenuecatService, StripeService],

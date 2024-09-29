@@ -33,6 +33,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT || 3000);
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
-
+  console.warn('الراجل له في زمتي ساعتين')
+  console.warn('0m spent from 2 hrs')
 }
 bootstrap();
