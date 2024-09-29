@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional, IsBoolean, IsMobilePhone } from 'class-validator';
 
 export enum USER_TYPES {
     USER = 'user',
@@ -22,12 +22,15 @@ export class CreateUserDto {
     @IsOptional()
     @IsString()
     @IsNotEmpty()
+    @IsMobilePhone()
     phone: string | null;
 
-    @IsOptional()
-    @IsString()
-    @IsNotEmpty()
-    country: string | null;
+
+    // // Disbeld temp
+    // @IsOptional()
+    // @IsString()
+    // @IsNotEmpty()
+    // country: string | null;
 
     @IsOptional()
     @IsString()
