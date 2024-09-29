@@ -22,14 +22,13 @@ export class AuthService {
 
   constructor(
     private readonly mailService: MailerService,
+    private readonly authContext: AuthContext
   ) { }
   private readonly jwtService: JwtService = new JwtService();
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly axiosService: AxiosService = new AxiosService();
   private readonly userService: UserService = new UserService();
   private readonly utils: Utlis = new Utlis();
-  private readonly authContext: AuthContext = new AuthContext();
-
 
   async register(emailSignUpDto: EmailSignUpDto) {
     try {
@@ -337,6 +336,8 @@ export class AuthService {
   async resetPassword(passwordResetDto: PasswordResetDto) {
 
     try {
+
+      if (passwordResetDto.newPassword == passwordResetDto.oldPassword) throw new BadRequestException('New password cannot be the same as the old password');
 
       const user = await this.prisma.user.findFirst({
         where: {
