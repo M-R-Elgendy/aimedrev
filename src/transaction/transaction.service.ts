@@ -63,7 +63,7 @@ export class TransactionService {
 
       return {
         message: 'Transactions fetched successfully',
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         data
       }
 
@@ -120,7 +120,7 @@ export class TransactionService {
 
       return {
         message: 'Transactions fetched successfully',
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         data
       }
 

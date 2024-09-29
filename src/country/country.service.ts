@@ -23,7 +23,7 @@ export class CountryService {
       })
 
       return {
-        status: HttpStatus.CREATED,
+        statusCode: HttpStatus.CREATED,
         message: 'Country created successfully',
         country: country
       };
@@ -49,7 +49,7 @@ export class CountryService {
         }
       });
       return {
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         message: 'Countries fetched successfully',
         countries: countries
       }
@@ -73,7 +73,7 @@ export class CountryService {
       if (!country) throw new NotFoundException(`Country not found`);
 
       return {
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         message: 'Countries fetched successfully',
         country: country
       }
@@ -101,7 +101,7 @@ export class CountryService {
       });
 
       return {
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         message: 'Country updated successfully',
         country: updatedCountry
       }
@@ -124,7 +124,7 @@ export class CountryService {
       await this.prisma.country.delete({ where: { id } });
 
       return {
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         message: 'Country deleted successfully',
         country: {}
       }

@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus, ConflictException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, ConflictException, NotFoundException, ForbiddenException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compareSync, hashSync } from 'bcrypt';
 import { PrismaClient, User } from '@prisma/client'
@@ -9,10 +9,14 @@ import { EmailLogInDto } from './dto/email-login.dto';
 import { EmailSignUpDto } from './dto/email-signup.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { EmailVerificationDto, SendOTPDto } from './dto/email-verification.dto';
+import { OTPPasswordResetDto } from './dto/reset-password-otp.dto';
+import { ResetPasswordRequestDto } from './dto/reset-password-request.dto';
+import { PasswordResetDto } from './dto/reset-password.dto';
 
 import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
 import { SessionToken } from '../global/types';
+import { AuthContext } from './auth.context';
 @Injectable()
 export class AuthService {
 
@@ -24,6 +28,7 @@ export class AuthService {
   private readonly axiosService: AxiosService = new AxiosService();
   private readonly userService: UserService = new UserService();
   private readonly utils: Utlis = new Utlis();
+  private readonly authContext: AuthContext = new AuthContext();
 
 
   async register(emailSignUpDto: EmailSignUpDto) {
@@ -41,7 +46,7 @@ export class AuthService {
         }
       });
 
-      if (foundedUser) throw new ConflictException({ message: 'User already exists', foundedUser, status: HttpStatus.CONFLICT });
+      if (foundedUser) throw new ConflictException({ message: 'User already exists', foundedUser, statusCode: HttpStatus.CONFLICT });
 
       const user = await this.prisma.user.create({
         data: {
@@ -59,7 +64,7 @@ export class AuthService {
         message: 'User created successfully',
         user: this.removeExtraAttrs([user])[0],
         token,
-        status: HttpStatus.CREATED
+        statusCode: HttpStatus.CREATED
       };
 
     } catch (error) {
@@ -90,14 +95,14 @@ export class AuthService {
         }
       });
 
-      if (!user || user.socialProvider != null) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
+      if (!user || user.socialProvider != null) throw new NotFoundException('User not found');
+      if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
 
       const isPasswordMatch = await this.verifyPassword(emailLoginDto.password, user.password);
-      if (!isPasswordMatch) throw new HttpException({ message: 'Invalid credentials', status: HttpStatus.UNAUTHORIZED }, HttpStatus.UNAUTHORIZED);
+      if (!isPasswordMatch) throw new UnauthorizedException('Invalid credentials')
 
       const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
-      return { message: 'User logged in successfully', status: HttpStatus.OK, token };
+      return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
 
     } catch (error) {
       throw error;
@@ -137,12 +142,12 @@ export class AuthService {
         }
       });
 
-      if (user && user?.socialProvider != 'google') throw new ConflictException({ message: 'User already exists please try to reset your password', status: HttpStatus.CONFLICT })
+      if (user && user?.socialProvider != 'google') throw new ConflictException('User already exists please try to reset your password')
 
       if (user) {
 
         await this.updateGoogleData(googleUser.data.email, googleUser.data);
-        if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
+        if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact us');
 
       } else {
         const userData = await this.prisma.googleData.create({ data: googleUser.data });
@@ -160,7 +165,7 @@ export class AuthService {
 
       const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
 
-      return { message: 'User created successfully', status: HttpStatus.CREATED, token };
+      return { message: 'User created successfully', statusCode: HttpStatus.CREATED, token };
 
     } catch (error) {
       throw error;
@@ -170,15 +175,15 @@ export class AuthService {
 
   async getUserFromToken(token: string) {
 
-    if (!token) throw new HttpException({ message: 'Invalid token', status: HttpStatus.UNAUTHORIZED }, HttpStatus.UNAUTHORIZED);
+    if (!token) throw new UnauthorizedException('Invalid token');
     try {
       const tokenValue = token.replace('Bearer ', '');
       const decoded = await this.jwtService.verifyAsync(tokenValue, { secret: process.env.JWT_SECRET }) as SessionToken;
 
-      const user = await this.userService.findOne(decoded.id);
+      const user = (await this.userService.findOne(decoded.id))?.data || null;
 
-      if (!user) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
+      if (!user) throw new NotFoundException('User not found');
+      if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
 
       return user;
     } catch (error) {
@@ -208,16 +213,16 @@ export class AuthService {
         }
       });
 
-      if (!user || user?.socialProvider != null) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
-      if (user.emailVerified) throw new HttpException({ message: 'User already verified', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+      if (!user || user?.socialProvider != null) throw new NotFoundException('User not found');
+      if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
+      if (user.emailVerified) throw new BadRequestException('User already verified');
 
       user.code = this.utils.generateOTP(+process.env.OTP_LENGTH || 6);
       await this.prisma.user.update({ where: { id: user.id }, data: { code: user.code } });
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
 
-      return { message: 'OTP sent successfully', status: HttpStatus.OK };
+      return { message: 'OTP sent successfully', statusCode: HttpStatus.OK };
 
     } catch (error) {
       throw error;
@@ -243,16 +248,119 @@ export class AuthService {
         }
       });
 
-      if (!user || user?.socialProvider != null) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
-      if (user.code != emailVerificationDto.code) throw new HttpException({ message: 'Invalid code', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+      if (!user || user?.socialProvider != null) throw new NotFoundException('User not found');
+      if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
+      if (user.code != emailVerificationDto.code) throw new BadRequestException('Invalid code');
 
       await this.prisma.user.update({
         where: { id: user.id },
         data: { emailVerified: true, code: null }
       });
 
-      return { message: 'User verified successfully', status: HttpStatus.OK };
+      return { message: 'User verified successfully', statusCode: HttpStatus.OK };
+
+    } catch (error) {
+      throw error;
+    }
+
+  }
+
+  async resetPasswordRequest(resetPasswordRequestDto: ResetPasswordRequestDto) {
+
+    try {
+
+      const user = await this.prisma.user.findFirst({
+        where: {
+          email: resetPasswordRequestDto.email,
+          isDeleted: false
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          socialProvider: true,
+          isBlocked: true
+        }
+      });
+
+      if (!user || user?.socialProvider != null) throw new NotFoundException('User not found');
+      if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team');
+
+      const code = this.utils.generateOTP(+process.env.OTP_LENGTH || 6);
+      await this.prisma.user.update({ where: { id: user.id }, data: { code: code } });
+
+      await this.sendEmail(user.email, 'Reset your password', `Your reset code is ${code}`);
+
+      return { message: 'Reset code sent successfully', statusCode: HttpStatus.OK };
+
+    } catch (error) {
+      throw error;
+    }
+
+  }
+
+  async resetPasswordWithCode(otpPasswordResetDto: OTPPasswordResetDto) {
+
+    try {
+
+      const user = await this.prisma.user.findFirst({
+        where: {
+          email: otpPasswordResetDto.email,
+          isDeleted: false
+        },
+        select: {
+          id: true,
+          code: true,
+          socialProvider: true,
+          isBlocked: true,
+        }
+      });
+
+      if (!user || user?.socialProvider != null) throw new NotFoundException('User not found');
+      if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team');
+      if (user.code != otpPasswordResetDto.otp) throw new BadRequestException('Invalid code');
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: await this.hashPassword(otpPasswordResetDto.password), code: null }
+      });
+
+      return { message: 'Password reset successfully', statusCode: HttpStatus.OK };
+
+    } catch (error) {
+      throw error;
+    }
+
+  }
+
+  async resetPassword(passwordResetDto: PasswordResetDto) {
+
+    try {
+
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: this.authContext.getUser().id,
+          isDeleted: false
+        },
+        select: {
+          id: true,
+          socialProvider: true,
+          isBlocked: true,
+          password: true
+        }
+      });
+
+      if (!user || user?.socialProvider != null) throw new NotFoundException('User not found');
+      if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team');
+      if (!await this.verifyPassword(passwordResetDto.oldPassword, user.password)) throw new BadRequestException('Invalid old password');
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: await this.hashPassword(passwordResetDto.newPassword) }
+      });
+
+      return { message: 'Password reset successfully', statusCode: HttpStatus.OK };
 
     } catch (error) {
       throw error;

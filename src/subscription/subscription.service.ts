@@ -47,7 +47,7 @@ export class SubscriptionService {
 
       return {
         message: 'Subscriptions fetched successfully',
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         data
       }
 
@@ -96,7 +96,7 @@ export class SubscriptionService {
 
       return {
         message: 'Subscription fetched successfully',
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         data
       }
     } catch (error) {
@@ -115,7 +115,7 @@ export class SubscriptionService {
 
       return {
         message: 'Subscription deleted successfully',
-        status: HttpStatus.OK,
+        statusCode: HttpStatus.OK,
         data: {}
       }
     } catch (error) {

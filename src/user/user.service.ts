@@ -1,20 +1,70 @@
-import { Injectable, HttpException, HttpStatus, ConflictException } from '@nestjs/common';
+import { Injectable, HttpStatus, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaClient, User } from '@prisma/client'
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-
 @Injectable()
 export class UserService {
 
   private readonly prisma: PrismaClient = new PrismaClient();
 
-  findAll() {
-    return `This action returns all user`;
+  create(createUserDto: CreateUserDto) {
+    return 'This action adds a new user';
+  }
+
+  async findAll() {
+    try {
+      const data = await this.prisma.user.findMany({
+        where: { isDeleted: false },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          speciality: true,
+          paidUser: true,
+          activeUntil: true,
+          role: true,
+          emailVerified: true,
+          phoneVerified: true,
+          socialProvider: true,
+          isBlocked: true,
+          googleData: {
+            select: {
+              picture: true
+            }
+          },
+          Country: {
+            select: {
+              name: true,
+              phoneCode: true,
+              ISOCode: true
+            }
+          },
+          Plan: {
+            select: {
+              title: true,
+              description: true,
+              frequency: true,
+              qeriesCount: true
+            }
+          }
+        }
+      });
+
+      return {
+        message: 'User found successfully',
+        statusCode: HttpStatus.OK,
+        data
+      };
+
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findOne(id: string) {
     try {
-      const user = await this.prisma.user.findFirst({
+      const user = await this.prisma.user.findUnique({
         where: { id: id, isDeleted: false },
         select: {
           id: true,
@@ -52,34 +102,78 @@ export class UserService {
         }
       });
 
-      if (!user) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (user.isBlocked) throw new HttpException({ message: 'User is blocked, please contact us', status: HttpStatus.FORBIDDEN }, HttpStatus.FORBIDDEN);
-      return user;
+      if (!user) throw new NotFoundException('User not found');
+
+      return {
+        message: 'User found successfully',
+        statusCode: HttpStatus.OK,
+        data: user
+      };
 
     } catch (error) {
       throw error;
     }
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  async remove(id: number) {
-    return `This action removes a #${id} user`;
-  }
-
-  async block(id: string) {
+  async update(id: string, updateUserDto: UpdateUserDto) {
     try {
+      const user = await this.prisma.user.findUnique({ where: { id: id } });
+
+      let isNewEmail = false, isNewPhone = false;
+      if (updateUserDto.email !== user.email || updateUserDto.phone !== user.phone) {
+
+        isNewEmail = updateUserDto.email !== user.email;
+        isNewPhone = updateUserDto.phone !== user.phone;
+
+        const isDataDuplicated = await this.prisma.user.findFirst({
+          where: {
+            OR: [{ email: updateUserDto.email }, { phone: updateUserDto.phone }],
+            NOT: { id: id }
+          }
+        });
+
+        if (isDataDuplicated) throw new ConflictException('Email or phone already exist');
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: id },
+        data: { ...updateUserDto, emailVerified: !isNewEmail, phoneVerified: !isNewPhone },
+        select: { id: true, name: true, email: true }
+      });
+
+
+      return { message: `User updated successfully`, statusCode: HttpStatus.OK, data: updatedUser };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async remove(id: string) {
+    try {
+      await this.findOne(id);
       const user = await this.prisma.user.update({
         where: { id: id },
-        data: { isBlocked: true }
+        data: { isDeleted: true },
+        select: { id: true, name: true, email: true }
       });
-      return { message: 'User blocked successfully', status: HttpStatus.OK, user };
+      return { message: `User deleted successfully`, statusCode: HttpStatus.OK, data: user };
     } catch (error) {
       throw error;
     }
   }
 
+  async accountStatus(id: string, suspend: boolean) {
+    try {
+      await this.findOne(id);
+      const user = await this.prisma.user.update({
+        where: { id: id },
+        data: { isBlocked: suspend },
+        select: { id: true, name: true, email: true }
+      });
+      return { message: `User ${suspend ? '' : 'un'}suspended successfully`, statusCode: HttpStatus.OK, data: user };
+    } catch (error) {
+      throw error;
+    }
+  }
 
 }

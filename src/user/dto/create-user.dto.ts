@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional, IsBoolean } from 'class-validator';
 
 export enum USER_TYPES {
     USER = 'user',
@@ -33,4 +33,9 @@ export class CreateUserDto {
     @IsString()
     @IsNotEmpty()
     speciality: string | null;
+
+
+    @IsOptional()
+    @IsBoolean()
+    autoRenewal: boolean;
 }

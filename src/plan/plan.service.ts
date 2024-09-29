@@ -23,7 +23,7 @@ export class PlanService {
       return {
         message: "Plan created successfully",
         plan: plan,
-        status: HttpStatus.CREATED
+        statusCode: HttpStatus.CREATED
       }
     } catch (error) {
       throw error;
@@ -43,7 +43,7 @@ export class PlanService {
     return {
       message: "Plans fetched successfully",
       plans: plans,
-      status: HttpStatus.OK
+      statusCode: HttpStatus.OK
     }
   }
 
@@ -53,12 +53,12 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
 
       return {
         message: "Plan fetched successfully",
         plan: plan,
-        status: HttpStatus.OK
+        statusCode: HttpStatus.OK
       }
 
     } catch (error) {
@@ -72,12 +72,12 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
       const updatedPlan = await this.prisma.plan.update({ where: { id: id }, data: updatePlanDto });
       return {
         message: "Plan updated successfully",
         plan: updatedPlan,
-        status: HttpStatus.OK
+        statusCode: HttpStatus.OK
       }
     } catch (error) {
       throw error;
@@ -90,14 +90,14 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
 
       await this.prisma.plan.update({ where: { id: id }, data: { isDeleted: true } });
 
       return {
         message: "Plan deleted successfully",
         plan: {},
-        status: HttpStatus.OK
+        statusCode: HttpStatus.OK
       }
 
     } catch (error) {
@@ -111,15 +111,15 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (plan.isActive == isActive) throw new HttpException({ message: 'Plan already ' + (isActive ? 'active' : 'inactive'), status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (plan.isActive == isActive) throw new HttpException({ message: 'Plan already ' + (isActive ? 'active' : 'inactive'), statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
 
       const updatedPlan = await this.prisma.plan.update({ where: { id: id }, data: { isActive: isActive } });
 
       return {
         message: (isActive) ? "Plan activated successfully" : "Plan deactivated successfully",
         plan: updatedPlan,
-        status: HttpStatus.OK
+        statusCode: HttpStatus.OK
       }
 
     } catch (error) {
@@ -144,12 +144,12 @@ export class PlanService {
         include: { Subscription: true }
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (!user) throw new HttpException({ message: 'User not found', status: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!user) throw new HttpException({ message: 'User not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
 
       const hasActiveSubscription = this.subscriptionService.hasActiveSubscription(user);
       if (hasActiveSubscription) {
-        throw new HttpException({ message: 'User already have a plan', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST)
+        throw new HttpException({ message: 'User already have a plan', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST)
       }
 
       const { price, userCountryCode } = await this.getPlanPrice(plan);
@@ -175,7 +175,7 @@ export class PlanService {
         message: "Session created successfully",
         createdSupscription,
         checkoutSessionURL: checkoutSession.url,
-        status: HttpStatus.OK
+        statusCode: HttpStatus.OK
       }
 
     } catch (error) {
@@ -209,7 +209,7 @@ export class PlanService {
         periodItems = null
         break;
       default:
-        throw new HttpException({ message: 'Invalid frequency', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+        throw new HttpException({ message: 'Invalid frequency', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
         break;
     }
 
@@ -225,7 +225,7 @@ export class PlanService {
       const userCountryCode = userCountrData.country_code;
 
       let price = (userCountryCode == 'EG') ? plan.egPrice : plan.globalPrice;
-      if (!price) throw new HttpException({ message: 'Plan not available in your country', status: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+      if (!price) throw new HttpException({ message: 'Plan not available in your country', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
       price = Math.ceil(price * 100); // Zero-decimal currencies to charge 10 USD, provide an amount value of 1000 (that is, 1000 cents).
 
       return { price, userCountryCode };
