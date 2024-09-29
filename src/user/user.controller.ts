@@ -31,10 +31,10 @@ export class UserController {
     return this.userService.findOne(params.id);
   }
 
-  @Patch(':id')
-  @Roles(['*'])
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, updateUserDto);
+  @Patch()
+  @Roles([Role.USER])
+  update(@Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(updateUserDto);
   }
 
   @Delete(':id')

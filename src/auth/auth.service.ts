@@ -22,12 +22,12 @@ export class AuthService {
 
   constructor(
     private readonly mailService: MailerService,
-    private readonly authContext: AuthContext
+    private readonly authContext: AuthContext,
+    private readonly userService: UserService
   ) { }
   private readonly jwtService: JwtService = new JwtService();
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly axiosService: AxiosService = new AxiosService();
-  private readonly userService: UserService = new UserService();
   private readonly utils: Utlis = new Utlis();
 
   async register(emailSignUpDto: EmailSignUpDto) {

@@ -2,10 +2,12 @@ import { Injectable, HttpStatus, ConflictException, NotFoundException } from '@n
 import { PrismaClient, User } from '@prisma/client'
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthContext } from 'src/auth/auth.context';
 @Injectable()
 export class UserService {
 
   private readonly prisma: PrismaClient = new PrismaClient();
+  constructor(private readonly authContext: AuthContext) { }
 
   create(createUserDto: CreateUserDto) {
     return 'This action adds a new user';
@@ -115,8 +117,9 @@ export class UserService {
     }
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async update(updateUserDto: UpdateUserDto) {
     try {
+      const id = this.authContext.getUser().id;
       const user = await this.prisma.user.findUnique({ where: { id: id } });
 
       let isNewEmail = false, isNewPhone = false;
