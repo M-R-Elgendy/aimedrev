@@ -12,15 +12,37 @@ import * as moment from 'moment';
 @Injectable()
 export class PlanService {
 
-  constructor(private readonly authContext: AuthContext) { }
+  constructor(private readonly authContext: AuthContext, private stripeService: StripeService) { }
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly utlis: Utlis = new Utlis();
-  private readonly stripeService: StripeService = new StripeService();
+  // private readonly stripeService: StripeService = new StripeService();
   private readonly subscriptionService: SubscriptionService = new SubscriptionService();
 
   async create(createPlanDto: CreatePlanDto) {
     try {
+
       const plan = await this.prisma.plan.create({ data: createPlanDto });
+
+      const stripeProduct = await this.stripeService.createProduct({
+        name: createPlanDto.title,
+        description: createPlanDto.description,
+        active: true,
+        metadata: {
+          planId: plan.id,
+          frequency: createPlanDto.frequency,
+          queries: createPlanDto.qeriesCount,
+          egPrice: createPlanDto.egPrice,
+          globalPrice: createPlanDto.globalPrice,
+        }
+      });
+
+      const updatedPlan = await this.prisma.plan.update({
+        where: { id: plan.id },
+        data: { stripeProductId: stripeProduct.id }
+      });
+
+      await this.createPlanPrices(updatedPlan)
+
       return {
         message: "Plan created successfully",
         plan: plan,
@@ -154,15 +176,15 @@ export class PlanService {
       }
 
       const { price, userCountryCode } = await this.getPlanPrice(plan);
-      const { periodUnit, periodItems } = this.getPalnFrequancy(plan);
+      const { periodUnit, intervalCount } = this.getPalnFrequancy(plan);
 
-      const endDate = (periodUnit) ? moment().add(periodItems, periodUnit).toDate() : null;
+      const endDate = (periodUnit) ? moment().add(intervalCount, periodUnit).toDate() : null;
       const createdSupscription = await this.prisma.subscription.create({
         data: {
           startDate: moment().toDate(),
           endDate: endDate,
           totalQueries: plan.qeriesCount,
-          price: price / 100,
+          price: price,
           userId: this.authContext.getUser().id,
           planId: plan.id
         }
@@ -187,47 +209,58 @@ export class PlanService {
 
   private getPalnFrequancy(plan: Plan) {
 
-    let periodUnit: moment.unitOfTime.Base | null, periodItems: number;
+    let periodUnit: moment.unitOfTime.Base | null, intervalCount: number;
     switch (plan.frequency) {
       case FREQUENCY.monthly:
         periodUnit = 'M'
-        periodItems = 1
+        intervalCount = 1
         break;
       case FREQUENCY.yearly:
         periodUnit = 'y'
-        periodItems = 1
+        intervalCount = 1
         break;
       case FREQUENCY.quarterly:
         periodUnit = 'M'
-        periodItems = 3
+        intervalCount = 3
+        break;
+      case FREQUENCY.yearly:
+        periodUnit = 'M'
+        intervalCount = 12
         break;
       case FREQUENCY.biannually:
         periodUnit = 'M'
-        periodItems = 6
+        intervalCount = 6
         break;
       case FREQUENCY.unlimited:
         periodUnit = null
-        periodItems = null
+        intervalCount = null
         break;
       default:
         throw new HttpException({ message: 'Invalid frequency', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
         break;
     }
 
-    return { periodUnit, periodItems };
+    return { periodUnit, intervalCount };
   }
 
   private async getPlanPrice(plan: Plan) {
     try {
 
       // const userIP = this.authContext.getUser().IP;
-      const userIP = '197.62.223.227';
+      // const userIP = '197.62.223.227'; // EG IP
+      const userIP = '104.244.42.1'; // US IP
       const userCountrData = await this.utlis.getCountryCodeFromIP(userIP);
       const userCountryCode = userCountrData.country_code;
 
-      let price = (userCountryCode == 'EG') ? plan.egPrice : plan.globalPrice;
-      if (!price) throw new HttpException({ message: 'Plan not available in your country', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
-      price = Math.ceil(price * 100); // Zero-decimal currencies to charge 10 USD, provide an amount value of 1000 (that is, 1000 cents).
+
+      const lookupKey = (userCountryCode == 'EG') ? 'EG' : 'global';
+      let priceData: Stripe.ApiList<Stripe.Price>;
+
+      priceData = await this.stripeService.getProductPrices(plan.stripeProductId, lookupKey);
+
+      if (!priceData?.data?.length) throw new HttpException({ message: 'Plan not available in your country', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+
+      const price = priceData.data[0].unit_amount;
 
       return { price, userCountryCode };
     } catch (error) {
@@ -281,5 +314,45 @@ export class PlanService {
     } catch (error) {
       throw error;
     }
+  }
+
+  private async createPlanPrices(plan: Plan) {
+
+    const { intervalCount } = this.getPalnFrequancy(plan);
+    let recurring: Stripe.PriceCreateParams.Recurring | null = null;
+    if (plan.frequency != FREQUENCY.unlimited) {
+      recurring = {
+        interval: 'month',
+        interval_count: intervalCount
+      }
+    };
+
+    if (plan.egPrice && plan.egPrice > 0) {
+
+      const pricingObject: Stripe.PriceCreateParams = {
+        unit_amount: plan.egPrice * 100,
+        currency: 'egp',
+        product: plan.stripeProductId,
+        lookup_key: "EG"
+      }
+
+      if (recurring) pricingObject.recurring = recurring;
+      await this.stripeService.createPrice(pricingObject);
+    }
+
+
+    if (plan.globalPrice && plan.globalPrice > 0) {
+      const pricingObject: Stripe.PriceCreateParams = {
+        unit_amount: plan.globalPrice * 100,
+        currency: 'usd',
+        product: plan.stripeProductId,
+        lookup_key: "global"
+      }
+
+      if (recurring) pricingObject.recurring = recurring;
+      await this.stripeService.createPrice(pricingObject);
+
+    }
+
   }
 }

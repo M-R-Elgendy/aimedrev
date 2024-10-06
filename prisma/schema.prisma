@@ -33,17 +33,18 @@ model Country {
 }
 
 model Plan {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String
-  globalPrice Float
-  egPrice     Float
-  frequency   FREQUENCY
-  qeriesCount Int           @default(0)
-  isActive    Boolean       @default(true)
-  isDeleted   Boolean       @default(false)
-  users       User[]
-  Transaction Transaction[]
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String
+  globalPrice     Float
+  egPrice         Float
+  frequency       FREQUENCY
+  qeriesCount     Int           @default(0)
+  isActive        Boolean       @default(true)
+  isDeleted       Boolean       @default(false)
+  stripeProductId String?
+  users           User[]
+  Transaction     Transaction[]
 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

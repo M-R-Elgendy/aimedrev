@@ -13,7 +13,7 @@ export class PlanController {
 
   @Post()
   @UseGuards(AuthGuard, RoleGuard)
-  @Roles([Role.ADMIN])
+  // @Roles([Role.ADMIN])
   create(@Body() createPlanDto: CreatePlanDto) {
     return this.planService.create(createPlanDto);
   }
