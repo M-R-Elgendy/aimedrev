@@ -26,21 +26,21 @@ export class ReviewsController {
 
   @Get(':id')
   @UseGuards(AuthGuard, RoleGuard)
-  // @Roles([Role.ADMIN])
+  @Roles([Role.ADMIN])
   findOne(@Param() params: ObjectIdDto) {
     return this.reviewsService.findOne(params.id);
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard, RoleGuard)
-  // @Roles([Role.ADMIN])
+  @Roles([Role.ADMIN])
   update(@Param() params: ObjectIdDto, @Body() updateReviewDto: UpdateReviewDto) {
     return this.reviewsService.update(params.id, updateReviewDto);
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard, RoleGuard)
-  // @Roles([Role.ADMIN])
+  @Roles([Role.ADMIN])
   remove(@Param() params: ObjectIdDto) {
     return this.reviewsService.remove(params.id);
   }

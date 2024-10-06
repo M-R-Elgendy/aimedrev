@@ -25,7 +25,7 @@ export class SubscriptionController {
   }
 
   @UseGuards(AuthGuard, RoleGuard)
-  // @Roles([Role.ADMIN])
+  @Roles([Role.ADMIN])
   @Delete('/:id') // Subscription ID
   async delete(@Param() params: ObjectIdDto) {
     return this.subscriptionService.delete(params.id)
