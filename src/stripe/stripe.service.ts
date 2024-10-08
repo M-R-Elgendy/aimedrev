@@ -65,4 +65,14 @@ export class StripeService {
         const subscription = await this.stripe.subscriptions.create(date);
         return subscription;
     }
+
+    async revokeSubscription(id: string) {
+        const subscription = await this.stripe.subscriptions.cancel(id);
+        return subscription;
+    }
+
+    async createCustomer(date: Stripe.CustomerCreateParams) {
+        const customer = await this.stripe.customers.create(date);
+        return customer;
+    }
 }

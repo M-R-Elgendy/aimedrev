@@ -67,24 +67,25 @@ model GoogleData {
 }
 
 model User {
-  id             String     @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  email          String     @unique
-  password       String?
-  phone          String?
-  speciality     String?
-  paidUser       Boolean    @default(false)
-  activeUntil    DateTime?
-  role           USER_TYPES @default(user)
-  emailVerified  Boolean    @default(false)
-  phoneVerified  Boolean    @default(false)
-  autoRenewal    Boolean    @default(false)
-  code           Int?
-  socialProvider String?
-  isBlocked      Boolean?   @default(false)
-  isDeleted      Boolean?   @default(false)
-  Plan           Plan?      @relation(fields: [planId], references: [id])
-  planId         String?    @db.ObjectId
+  id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String     @unique
+  password         String?
+  phone            String?
+  speciality       String?
+  paidUser         Boolean    @default(false)
+  activeUntil      DateTime?
+  role             USER_TYPES @default(user)
+  emailVerified    Boolean    @default(false)
+  phoneVerified    Boolean    @default(false)
+  autoRenewal      Boolean    @default(false)
+  code             Int?
+  socialProvider   String?
+  isBlocked        Boolean?   @default(false)
+  isDeleted        Boolean?   @default(false)
+  Plan             Plan?      @relation(fields: [planId], references: [id])
+  planId           String?    @db.ObjectId
+  stripeCustomerId String?
 
   Country   Country? @relation(fields: [countryId], references: [id])
   countryId String?  @db.ObjectId

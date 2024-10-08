@@ -17,18 +17,22 @@ import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
 import { SessionToken } from '../global/types';
 import { AuthContext } from './auth.context';
+import { StripeService } from 'src/stripe/stripe.service';
 @Injectable()
 export class AuthService {
 
   constructor(
     private readonly mailService: MailerService,
     private readonly authContext: AuthContext,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaClient,
+    private readonly axiosService: AxiosService,
+    private readonly utils: Utlis,
+    private readonly stripeService: StripeService
   ) { }
-  private readonly jwtService: JwtService = new JwtService();
-  private readonly prisma: PrismaClient = new PrismaClient();
-  private readonly axiosService: AxiosService = new AxiosService();
-  private readonly utils: Utlis = new Utlis();
+
+
 
   async register(emailSignUpDto: EmailSignUpDto) {
     try {
@@ -55,6 +59,12 @@ export class AuthService {
           code: this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6)
         }
       });
+      const stripeCustomerId = await this.createStripeCustomer(user);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId: stripeCustomerId }
+      });
+
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
       const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
@@ -159,6 +169,11 @@ export class AuthService {
             emailVerified: true,
             googleDataId: userData.id
           }
+        });
+        const stripeCustomerId = await this.createStripeCustomer(user as User);
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { stripeCustomerId: stripeCustomerId }
         });
       }
 
@@ -369,7 +384,7 @@ export class AuthService {
 
   }
 
-  private async sendEmail(email: string, subject: string, text: string) {
+  private async sendEmail(email: string, subject: string, text: string): Promise<void> {
     await this.mailService.sendMail({
       to: email,
       subject: subject,
@@ -395,13 +410,14 @@ export class AuthService {
     }
   }
 
-  private removeExtraAttrs(users: User[]) {
+  private removeExtraAttrs(users: User[]): Partial<User[]> {
 
     return users.map(user => {
       delete user.password;
       delete user.code;
       delete user.createdAt;
       delete user.updatedAt;
+      delete user.stripeCustomerId;
       return user;
     });
 
@@ -412,5 +428,19 @@ export class AuthService {
       where: { email: email },
       data: googleData
     },);
+  }
+
+  private async createStripeCustomer(user: User): Promise<string> {
+    const customer = await this.stripeService.createCustomer({
+      email: user.email,
+      name: user.name,
+      metadata: {
+        userId: user.id,
+        socialProvider: user.socialProvider,
+      }
+    });
+
+    console.log(customer)
+    return customer.id;
   }
 }
