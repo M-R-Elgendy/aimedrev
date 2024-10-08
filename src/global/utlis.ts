@@ -5,7 +5,7 @@ export class Utlis {
 
     private readonly axiosService: AxiosService = new AxiosService()
 
-    generateOTP(length: number): number {
+    generateRandomNumber(length: number): number {
         const digits = '0123456789';
         let OTP = '';
         for (let i = 0; i < length; i++) {

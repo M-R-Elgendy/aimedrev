@@ -31,32 +31,18 @@ async function bootstrap() {
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.useGlobalFilters(new GeneralExceptionFilter());
 
-  const st = new StripeService();
-  // console.log(await st.createProduct({
-  //   name: 'test',
-  //   description: 'test',
-  //   active: true,  // Ensure product is active
-  //   metadata: {
-  //     key: 'value'
-  //   },
-  //   default_price_data: {
-  //     currency: 'usd',
-  //     unit_amount: 100, // Ensure this is in the smallest currency unit (cents for USD)
-  //     recurring: {
-  //       interval: 'month',
+  // const st = new StripeService();
+  // console.log(await st.createSubscription({
+  //   client_reference_id: "",
+  //   customer_email: '',
+  //   success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${123 * 10}`,
+  //   cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
+  //   items: [
+  //     {
+  //       price: 'price_1Q6vUDHGXGocVbgeypnPt5SG'
   //     },
-  //     tax_behavior: 'inclusive', // Add this to specify tax behavior (optional)
-  //   },
-  //   expand: ['default_price'], // This ensures the default price is created and linked properly
+  //   ],
   // }))
-  // // console.log(await st.getProduct('prod_QyrzGgrtHMAPzn'))
-  // const products = (await st.getProduct('prod_QysKU3l3YFyunf'))
-  // console.log(await st.getProductPrices('prod_QysKU3l3YFyunf'))
-  // console.log(products)
-  // // Print products ids
-  // products.forEach((product) => {
-  //   console.log(product.id);
-  // });
 
   await app.listen(process.env.PORT || 3000);
   console.log(`Server is running on port ${process.env.PORT || 3000}`);

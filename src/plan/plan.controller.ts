@@ -30,7 +30,7 @@ export class PlanController {
 
   @Patch(':id')
   @UseGuards(AuthGuard, RoleGuard)
-  @Roles([Role.ADMIN])
+  // @Roles([Role.ADMIN])
   update(@Param() params: ObjectIdDto, @Body() updatePlanDto: UpdatePlanDto) {
     return this.planService.update(params.id, updatePlanDto);
   }

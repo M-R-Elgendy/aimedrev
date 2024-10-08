@@ -22,8 +22,23 @@ export class StripeService {
         return product;
     }
 
+    async updateProduct(id: string, date: Stripe.ProductUpdateParams) {
+        const product = await this.stripe.products.update(id, date);
+        return product;
+    }
+
     async createPrice(date: Stripe.PriceCreateParams) {
         const price = await this.stripe.prices.create(date);
+        return price;
+    }
+
+    async updatePrice(id: string, date: Stripe.PriceUpdateParams) {
+        const price = await this.stripe.prices.update(id, date);
+        return price;
+    }
+
+    async archivePrice(id: string) {
+        const price = await this.stripe.prices.update(id, { active: false });
         return price;
     }
 
@@ -37,11 +52,12 @@ export class StripeService {
         return products;
     }
 
-    async getProductPrices(id: string, lookupKey: string) {
-        const prices = await this.stripe.prices.list({
+    async getProductPrices(id: string, lookupKey?: string) {
+        const query = {
             product: id,
-            lookup_keys: [lookupKey]
-        });
+            lookup_keys: lookupKey ? [lookupKey] : undefined
+        };
+        const prices = await this.stripe.prices.list(query);
         return prices;
     }
 

@@ -15,7 +15,6 @@ export class PlanService {
   constructor(private readonly authContext: AuthContext, private stripeService: StripeService) { }
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly utlis: Utlis = new Utlis();
-  // private readonly stripeService: StripeService = new StripeService();
   private readonly subscriptionService: SubscriptionService = new SubscriptionService();
 
   async create(createPlanDto: CreatePlanDto) {
@@ -97,6 +96,35 @@ export class PlanService {
 
       if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
       const updatedPlan = await this.prisma.plan.update({ where: { id: id }, data: updatePlanDto });
+
+      const stripeProductUpdate: Stripe.ProductUpdateParams = {
+        name: updatePlanDto.title,
+        description: updatePlanDto.description,
+        metadata: {
+          planId: plan.id,
+          frequency: updatePlanDto.frequency,
+          queries: updatePlanDto.qeriesCount,
+          egPrice: updatePlanDto.egPrice,
+          globalPrice: updatePlanDto.globalPrice,
+        },
+        active: updatePlanDto.isActive
+      };
+      await this.stripeService.updateProduct(plan.stripeProductId, stripeProductUpdate);
+
+      if (
+        updatedPlan.egPrice > 0 && updatePlanDto.egPrice != plan.egPrice ||
+        updatedPlan.globalPrice > 0 && updatePlanDto.globalPrice != plan.globalPrice
+      ) {
+        const prices = await this.stripeService.getProductPrices(plan.stripeProductId);
+
+        const archivePromises = prices.data.map(async (price) => {
+          return this.stripeService.updatePrice(price.id, { active: false, lookup_key: `${price.lookup_key}-${this.utlis.generateRandomNumber(7)}` });
+        });
+
+        await Promise.all(archivePromises);
+        await this.createPlanPrices(updatedPlan);
+      }
+
       return {
         message: "Plan updated successfully",
         plan: updatedPlan,
@@ -116,6 +144,7 @@ export class PlanService {
       if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
 
       await this.prisma.plan.update({ where: { id: id }, data: { isDeleted: true } });
+      await this.stripeService.updateProduct(plan.stripeProductId, { active: false });
 
       return {
         message: "Plan deleted successfully",
@@ -138,6 +167,7 @@ export class PlanService {
       if (plan.isActive == isActive) throw new HttpException({ message: 'Plan already ' + (isActive ? 'active' : 'inactive'), statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
 
       const updatedPlan = await this.prisma.plan.update({ where: { id: id }, data: { isActive: isActive } });
+      await this.stripeService.updateProduct(plan.stripeProductId, { active: isActive });
 
       return {
         message: (isActive) ? "Plan activated successfully" : "Plan deactivated successfully",
@@ -253,7 +283,7 @@ export class PlanService {
       const userCountryCode = userCountrData.country_code;
 
 
-      const lookupKey = (userCountryCode == 'EG') ? 'EG' : 'global';
+      const lookupKey = (userCountryCode == 'EG') ? `EG-${plan.id}` : `global-${plan.id}`;
       let priceData: Stripe.ApiList<Stripe.Price>;
 
       priceData = await this.stripeService.getProductPrices(plan.stripeProductId, lookupKey);
@@ -278,14 +308,15 @@ export class PlanService {
         cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
         line_items: [
           {
-            price_data: {
-              unit_amount: price,
-              currency: userCountryCode === "EG" ? "egp" : "usd",
-              product_data: {
-                name: plan.title,
-                description: plan.description,
-              },
-            },
+            // price_data: {
+            //   unit_amount: price,
+            //   currency: userCountryCode === "EG" ? "egp" : "usd",
+            //   product_data: {
+            //     name: plan.title,
+            //     description: plan.description,
+            //   },
+            // },
+            price: "price_1Q6vUDHGXGocVbgeypnPt5SG",
             quantity: 1,
           },
         ],
@@ -333,20 +364,19 @@ export class PlanService {
         unit_amount: plan.egPrice * 100,
         currency: 'egp',
         product: plan.stripeProductId,
-        lookup_key: "EG"
+        lookup_key: `EG-${plan.id}`
       }
 
       if (recurring) pricingObject.recurring = recurring;
       await this.stripeService.createPrice(pricingObject);
     }
 
-
     if (plan.globalPrice && plan.globalPrice > 0) {
       const pricingObject: Stripe.PriceCreateParams = {
         unit_amount: plan.globalPrice * 100,
         currency: 'usd',
         product: plan.stripeProductId,
-        lookup_key: "global"
+        lookup_key: `global-${plan.id}`
       }
 
       if (recurring) pricingObject.recurring = recurring;
