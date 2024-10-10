@@ -14,6 +14,7 @@ import { TransactionModule } from './transaction/transaction.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AuthContextModule } from './auth/auth.context';
 import { ReviewsModule } from './reviews/reviews.module';
+import { StripeController } from './stripe/stripe.controller';
 
 @Module({
   imports: [
@@ -46,7 +47,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     AuthContextModule,
     ReviewsModule
   ],
-  controllers: [AppController],
+  controllers: [AppController, StripeController],
   providers: [AppService, AxiosService, RevenuecatService, StripeService],
 
 })

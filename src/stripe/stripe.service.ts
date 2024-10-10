@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
-
+import { PrismaClient, StripeWebhook } from '@prisma/client';
 @Injectable()
 export class StripeService {
 
-    private readonly stripe = new Stripe(process.env.STRIPE_API_KEY);
+    private readonly stripe = new Stripe(process.env.STRIPE_API_TEST_KEY_PRIVATE);
+    private readonly prisma = new PrismaClient();
 
     async createCheckOutSession(date: Stripe.Checkout.SessionCreateParams) {
         const session = await this.stripe.checkout.sessions.create(date);
@@ -71,8 +72,49 @@ export class StripeService {
         return subscription;
     }
 
+    async getsubscription(id: string) {
+        const subscription = await this.stripe.subscriptions.retrieve(id);
+        return subscription;
+    }
+
+    async renewSubscription(id: string, renew: boolean) {
+        const subscription = await this.stripe.subscriptions.update(id, { cancel_at_period_end: !renew });
+        return subscription;
+    }
+
+    async getLastActiveSubscription(customerId: string) {
+        const subscriptions = await this.stripe.subscriptions.list({
+            customer: customerId,
+            status: 'active',
+            limit: 1
+        });
+        return subscriptions[0];
+    }
+
     async createCustomer(date: Stripe.CustomerCreateParams) {
         const customer = await this.stripe.customers.create(date);
         return customer;
+    }
+
+    async createWebHookEndpoint() {
+        const webhookEndpoint: Stripe.WebhookEndpoint = await this.stripe.webhookEndpoints.create({
+            url: 'https://aimedrev-api-staging.onrender.com/api/v1/stripe/webhooks/live/test',
+            enabled_events: ['invoice.payment_succeeded', 'invoice.payment_failed', 'subscription_schedule.expiring']
+        });
+        await this.prisma.stripeWebhook.create({ data: { webhookData: webhookEndpoint as object } });
+        return webhookEndpoint;
+    }
+
+    async getWebHookEndpoint() {
+        const webhookEndpoint = await this.stripe.webhookEndpoints.list({
+            limit: 1
+        });
+        return webhookEndpoint;
+    }
+
+    async constructEvent(payload: Buffer, sig: string) {
+        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        const event = this.stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+        return event;
     }
 }

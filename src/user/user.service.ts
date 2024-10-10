@@ -3,10 +3,13 @@ import { PrismaClient, User } from '@prisma/client'
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthContext } from 'src/auth/auth.context';
+import { StripeService } from 'src/stripe/stripe.service';
+import Stripe from 'stripe';
 @Injectable()
 export class UserService {
 
   private readonly prisma: PrismaClient = new PrismaClient();
+  private readonly stripeService: StripeService = new StripeService();
   constructor(private readonly authContext: AuthContext) { }
 
   create(createUserDto: CreateUserDto) {
@@ -141,8 +144,12 @@ export class UserService {
       const updatedUser = await this.prisma.user.update({
         where: { id: id },
         data: { ...updateUserDto, emailVerified: !isNewEmail, phoneVerified: !isNewPhone },
-        select: { id: true, name: true, email: true }
+        select: { id: true, name: true, email: true, autoRenewal: true, stripeCustomerId: true }
       });
+
+      const activeSubscription: Stripe.Subscription = await this.stripeService.getLastActiveSubscription(updatedUser.stripeCustomerId);
+      if (activeSubscription)
+        await this.stripeService.renewSubscription(activeSubscription.id, updatedUser.autoRenewal);
 
 
       return { message: `User updated successfully`, statusCode: HttpStatus.OK, data: updatedUser };

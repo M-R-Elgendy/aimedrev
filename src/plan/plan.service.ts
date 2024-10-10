@@ -214,14 +214,28 @@ export class PlanService {
           startDate: moment().toDate(),
           endDate: endDate,
           totalQueries: plan.qeriesCount,
-          price: price,
+          price: price.unit_amount / 100,
           userId: this.authContext.getUser().id,
           planId: plan.id
         }
       });
 
-      const stripeSessionObject: Stripe.Checkout.SessionCreateParams = this.generateStripeSessionObject(createdSupscription.id, userCountryCode, plan, price, user.email);
-      const checkoutSession = await this.stripeService.createCheckOutSession(stripeSessionObject);
+      const checkoutSession = await this.stripeService.createCheckOutSession({
+        customer_email: user.email,
+        success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${createdSupscription.id}`,
+        cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
+        line_items: [
+          {
+            price: price.id,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        payment_method_types: ["card"],
+        saved_payment_method_options: {
+          payment_method_save: "enabled",
+        },
+      });
       await this.prisma.subscription.update({ where: { id: createdSupscription.id }, data: { stripeSession: checkoutSession as object } });
 
       return {
@@ -290,58 +304,9 @@ export class PlanService {
 
       if (!priceData?.data?.length) throw new HttpException({ message: 'Plan not available in your country', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
 
-      const price = priceData.data[0].unit_amount;
+      const price = priceData.data[0];
 
       return { price, userCountryCode };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  private generateStripeSessionObject(supscriptionId: string, userCountryCode: string, plan: Plan, price: number, customerEmail: string): Stripe.Checkout.SessionCreateParams {
-    try {
-
-      return {
-        client_reference_id: this.authContext.getUser().id,
-        customer_email: customerEmail,
-        success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${supscriptionId}`,
-        cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
-        line_items: [
-          {
-            // price_data: {
-            //   unit_amount: price,
-            //   currency: userCountryCode === "EG" ? "egp" : "usd",
-            //   product_data: {
-            //     name: plan.title,
-            //     description: plan.description,
-            //   },
-            // },
-            price: "price_1Q6vUDHGXGocVbgeypnPt5SG",
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          planId: plan.id,
-          period: plan.frequency,
-          startDate: moment().format("YYYY-MM-DD"),
-          planTitle: plan.title,
-          planDescription: plan.description,
-          supscriptionId: supscriptionId,
-        },
-        payment_method_types: ["card"],
-        payment_method_options: {
-          card: {
-            setup_future_usage: "off_session",
-          },
-        },
-        mode: "payment",
-        customer_creation: "always",
-        saved_payment_method_options: {
-          payment_method_save: "enabled",
-        },
-
-      };
-
     } catch (error) {
       throw error;
     }

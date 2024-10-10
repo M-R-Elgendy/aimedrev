@@ -9,6 +9,10 @@ export class SubscriptionService {
   private readonly prisma: PrismaClient = new PrismaClient();
   private readonly stripeService: StripeService = new StripeService();
 
+  async create() {
+
+  }
+
   async findAll() {
     try {
 
@@ -130,12 +134,11 @@ export class SubscriptionService {
   async verify(subscriptionId: string) {
 
     const subscription = await this.prisma.subscription.findUnique({
-      where: { id: subscriptionId, isDeleted: false },
+      where: { id: subscriptionId, isDeleted: false, isVerified: { not: true } },
       include: { user: true, plan: true }
     });
 
     if (!subscription) throw new NotFoundException("Subscription not found");
-    if (subscription.isVerified) throw new UnprocessableEntityException("Subscription already verified");
 
     const sessionData: any = subscription.stripeSession
 
@@ -161,7 +164,17 @@ export class SubscriptionService {
           isActive: true,
           isVerified: true,
           stripeSession: updatedSessionData as object,
-          transactionId: transaction.id
+          transactionId: transaction.id,
+          stripeScpscriptionId: updatedSessionData.subscription as string
+        },
+        select: {
+          id: true,
+          isActive: true,
+          isVerified: true,
+          totalQueries: true,
+          usedQuries: true,
+          endDate: true,
+
         }
       });
       return updatedSubscription
