@@ -20,6 +20,7 @@ import { PrismaClient } from '@prisma/client';
 import { PlanService } from './plan/plan.service';
 import { SubscriptionService } from './subscription/subscription.service';
 import { AuthContext } from './auth/auth.context';
+import { Utlis } from './global/utlis';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -61,7 +62,8 @@ import { AuthContext } from './auth/auth.context';
     PrismaClient,
     PlanService,
     SubscriptionService,
-    AuthContext
+    AuthContext,
+    Utlis
   ],
 
 })

@@ -5,7 +5,7 @@ import { PlanService } from 'src/plan/plan.service';
 import { StripeService } from 'src/stripe/stripe.service';
 import { PrismaClient } from '@prisma/client';
 import { AuthContext } from 'src/auth/auth.context';
-// import { Utlis } from 'src/global/utlis';
+import { Utlis } from 'src/global/utlis';
 import { AxiosService } from 'src/axios/axios.service';
 @Module({
   controllers: [SubscriptionController],
@@ -15,7 +15,7 @@ import { AxiosService } from 'src/axios/axios.service';
     StripeService,
     PrismaClient,
     AuthContext,
-    // Utlis,
+    Utlis,
     AxiosService
   ],
 })

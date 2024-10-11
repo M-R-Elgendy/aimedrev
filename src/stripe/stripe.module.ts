@@ -4,9 +4,10 @@ import { StripeController } from './stripe.controller';
 import { PrismaClient } from '@prisma/client';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { PlanService } from 'src/plan/plan.service';
-
+import { Utlis } from 'src/global/utlis';
+import { AxiosService } from 'src/axios/axios.service';
 @Module({
     controllers: [StripeController],
-    providers: [StripeService, PrismaClient, SubscriptionService, PlanService],
+    providers: [StripeService, PrismaClient, SubscriptionService, PlanService, Utlis, AxiosService],
 })
 export class StripeModule { }

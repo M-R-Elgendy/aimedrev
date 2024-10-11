@@ -7,7 +7,7 @@ import { StripeService } from 'src/stripe/stripe.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaClient } from '@prisma/client'
 import { AxiosService } from '../axios/axios.service';
-// import { Utlis } from 'src/global/utlis';
+import { Utlis } from 'src/global/utlis';
 
 @Module({
   imports: [UserModule],
@@ -18,7 +18,7 @@ import { AxiosService } from '../axios/axios.service';
     StripeService,
     JwtService,
     AxiosService,
-    // Utlis,
+    Utlis,
     PrismaClient
   ],
 })

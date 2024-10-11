@@ -2,7 +2,7 @@ import { HttpStatus, Injectable, HttpException } from '@nestjs/common';
 import { CreatePlanDto, FREQUENCY } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Plan, PrismaClient } from '@prisma/client'
-// import { Utlis } from 'src/global/utlis';
+import { Utlis } from 'src/global/utlis';
 import { StripeService } from 'src/stripe/stripe.service';
 import Stripe from 'stripe';
 import * as moment from 'moment';
@@ -13,7 +13,7 @@ export class PlanService {
   constructor(
     private stripeService: StripeService,
     private readonly prisma: PrismaClient,
-    // private readonly utlis: Utlis
+    private readonly utlis: Utlis
   ) { }
 
   async create(createPlanDto: CreatePlanDto) {
@@ -117,7 +117,7 @@ export class PlanService {
         const prices = await this.stripeService.getProductPrices(plan.stripeProductId);
 
         const archivePromises = prices.data.map(async (price) => {
-          return this.stripeService.updatePrice(price.id, { active: false, lookup_key: `${price.lookup_key}-${/*this.utlis.generateRandomNumber(7)*/ 123456789}` });
+          return this.stripeService.updatePrice(price.id, { active: false, lookup_key: `${price.lookup_key}-${this.utlis.generateRandomNumber(7)}` });
         });
 
         await Promise.all(archivePromises);
@@ -221,7 +221,7 @@ export class PlanService {
       // const userIP = this.authContext.getUser().IP;
       // const userIP = '197.62.223.227'; // EG IP
       const userIP = '104.244.42.1'; // US IP
-      const userCountrData = /*await this.utlis.getCountryCodeFromIP(userIP)*/ { country_code: 'EG' };
+      const userCountrData = await this.utlis.getCountryCodeFromIP(userIP);
       const userCountryCode = userCountrData.country_code;
 
 
