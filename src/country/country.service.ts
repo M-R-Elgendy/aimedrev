@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, HttpStatus, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateCountryDto } from './dto/create-country.dto';
 import { UpdateCountryDto } from './dto/update-country.dto';
 import { PrismaClient, Prisma } from '@prisma/client'
@@ -6,8 +6,10 @@ import { AxiosService } from 'src/axios/axios.service';
 @Injectable()
 export class CountryService {
 
-  private readonly prisma: PrismaClient = new PrismaClient();
-  private readonly axiosService: AxiosService = new AxiosService();
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly axiosService: AxiosService
+  ) { }
 
   async create(createCountryDto: CreateCountryDto) {
     try {

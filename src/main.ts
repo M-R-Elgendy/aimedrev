@@ -3,9 +3,10 @@ import { AppModule } from './app.module';
 import { GeneralExceptionFilter } from './global/filters/exception.filter';
 import { BadRequestException, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
-import { StripeService } from './stripe/stripe.service';
+import * as bodyParser from 'body-parser';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.enableCors();
 
   app.useGlobalPipes(
@@ -30,6 +31,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.useGlobalFilters(new GeneralExceptionFilter());
+
+  app.use('/api/v1/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
 
   // const st = new StripeService();
   // console.log(await st.createSubscription({

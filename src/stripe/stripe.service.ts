@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import Stripe from 'stripe';
-import { PrismaClient, StripeWebhook } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class StripeService {
 
+    constructor(
+        private readonly prisma: PrismaClient,
+    ) { }
+
     private readonly stripe = new Stripe(process.env.STRIPE_API_TEST_KEY_PRIVATE);
-    private readonly prisma = new PrismaClient();
 
     async createCheckOutSession(date: Stripe.Checkout.SessionCreateParams) {
         const session = await this.stripe.checkout.sessions.create(date);
@@ -112,9 +115,15 @@ export class StripeService {
         return webhookEndpoint;
     }
 
-    async constructEvent(payload: Buffer, sig: string) {
+    constructEvent(payload: Buffer, sig: string): Stripe.Event {
         const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-        const event = this.stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+        let event: Stripe.Event;
+        try {
+            event = this.stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+        } catch (err) {
+            console.log(`⚠️  Webhook signature verification failed: ${err.message}`);
+            throw new BadRequestException(`Webhook Error: ${err.message}`);
+        }
         return event;
     }
 }

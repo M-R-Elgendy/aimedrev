@@ -1,16 +1,87 @@
-import { HttpStatus, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import Stripe from 'stripe';
+import { BadRequestException, HttpStatus, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { StripeService } from 'src/stripe/stripe.service';
+import { PlanService } from 'src/plan/plan.service';
 import { PrismaClient, User, Subscription } from '@prisma/client';
+import { AuthContext } from 'src/auth/auth.context';
+import Stripe from 'stripe';
 import * as moment from 'moment';
 @Injectable()
 export class SubscriptionService {
 
-  private readonly prisma: PrismaClient = new PrismaClient();
-  private readonly stripeService: StripeService = new StripeService();
+  constructor(
+    private readonly authContext: AuthContext,
+    private readonly planService: PlanService,
+    private readonly stripeService: StripeService,
+    private readonly prisma: PrismaClient
+  ) { }
 
-  async create() {
+  async create(id: string) {
+    try {
 
+      const plan = await this.prisma.plan.findFirst({
+        where: { id: id, isActive: true, isDeleted: false },
+      });
+
+      const user = await this.prisma.user.findFirst({
+        where: {
+          id: this.authContext.getUser().id,
+          isDeleted: false,
+          isBlocked: false
+        },
+        include: { Subscription: true }
+      });
+
+      if (!plan) throw new NotFoundException('Plan not found');
+      if (!user) throw new NotFoundException('User not found');
+
+      const hasActiveSubscription = this.hasActiveSubscription(user);
+      if (hasActiveSubscription) {
+        throw new BadRequestException('User already have a plan')
+      }
+
+      const { price, userCountryCode } = await this.planService.getPlanPrice(plan);
+      const { periodUnit, intervalCount } = this.planService.getPalnFrequancy(plan);
+
+      const endDate = (periodUnit) ? moment().add(intervalCount, periodUnit).toDate() : null;
+      const createdSupscription = await this.prisma.subscription.create({
+        data: {
+          startDate: moment().toDate(),
+          endDate: endDate,
+          totalQueries: plan.qeriesCount,
+          price: price.unit_amount / 100,
+          userId: this.authContext.getUser().id,
+          planId: plan.id
+        }
+      });
+
+      const checkoutSession = await this.stripeService.createCheckOutSession({
+        customer_email: user.email,
+        success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${createdSupscription.id}`,
+        cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
+        line_items: [
+          {
+            price: price.id,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        payment_method_types: ["card"],
+        saved_payment_method_options: {
+          payment_method_save: "enabled",
+        },
+      });
+      await this.prisma.subscription.update({ where: { id: createdSupscription.id }, data: { stripeSession: checkoutSession as object } });
+
+      return {
+        message: "Session created successfully",
+        createdSupscription,
+        checkoutSessionURL: checkoutSession.url,
+        statusCode: HttpStatus.OK
+      }
+
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findAll() {
@@ -206,6 +277,24 @@ export class SubscriptionService {
     if (lastSubscription.totalQueries > 0 && lastSubscription.endDate) return !isQuriesExpried && !isTimeExpired;
     if (lastSubscription.endDate) return !isTimeExpired;
     if (lastSubscription.totalQueries > 0) return !isQuriesExpried;
+
+  }
+
+  async handelSuccessInvoiceEvent(invoiceData: Stripe.Invoice) {
+    try {
+
+      const customerId = invoiceData.customer;
+      const subscriptionId = invoiceData.subscription;
+      const paymentDate = moment(invoiceData.period_start).format('YYYY-MM-DD');
+      const priceId = invoiceData.lines.data[0].price.id;
+      const priceAmoint = invoiceData.lines.data[0].price.unit_amount / 100;
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async handelSubscriptionExpiringEvent(event: Stripe.Event.Data.Object) {
 
   }
 

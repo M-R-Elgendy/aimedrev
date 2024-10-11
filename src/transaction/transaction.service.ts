@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class TransactionService {
 
-  private readonly prismaClient = new PrismaClient();
+  constructor(private readonly prismaClient: PrismaClient) { }
 
   async create(createTransactionDto: CreateTransactionDto) {
     try {

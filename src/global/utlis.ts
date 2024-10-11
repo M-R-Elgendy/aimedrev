@@ -3,7 +3,7 @@ import { AxiosService } from "src/axios/axios.service";
 @Injectable()
 export class Utlis {
 
-    private readonly axiosService: AxiosService = new AxiosService()
+    constructor(private readonly axiosService: AxiosService) { }
 
     generateRandomNumber(length: number): number {
         const digits = '0123456789';

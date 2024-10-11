@@ -15,7 +15,11 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { AuthContextModule } from './auth/auth.context';
 import { ReviewsModule } from './reviews/reviews.module';
 import { StripeController } from './stripe/stripe.controller';
-
+import { StripeModule } from './stripe/stripe.module';
+import { PrismaClient } from '@prisma/client';
+import { PlanService } from './plan/plan.service';
+import { SubscriptionService } from './subscription/subscription.service';
+import { AuthContext } from './auth/auth.context';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -45,10 +49,20 @@ import { StripeController } from './stripe/stripe.controller';
     TransactionModule,
     SubscriptionModule,
     AuthContextModule,
-    ReviewsModule
+    ReviewsModule,
+    StripeModule
   ],
   controllers: [AppController, StripeController],
-  providers: [AppService, AxiosService, RevenuecatService, StripeService],
+  providers: [
+    AppService,
+    AxiosService,
+    RevenuecatService,
+    StripeService,
+    PrismaClient,
+    PlanService,
+    SubscriptionService,
+    AuthContext
+  ],
 
 })
 export class AppModule { }

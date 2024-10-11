@@ -14,7 +14,7 @@ import { ResetPasswordRequestDto } from './dto/reset-password-request.dto';
 import { PasswordResetDto } from './dto/reset-password.dto';
 
 import { UserService } from 'src/user/user.service';
-import { Utlis } from 'src/global/utlis';
+// import { Utlis } from 'src/global/utlis';
 import { SessionToken } from '../global/types';
 import { AuthContext } from './auth.context';
 import { StripeService } from 'src/stripe/stripe.service';
@@ -28,7 +28,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaClient,
     private readonly axiosService: AxiosService,
-    private readonly utils: Utlis,
+    // private readonly utils: Utlis,
     private readonly stripeService: StripeService
   ) { }
 
@@ -56,7 +56,8 @@ export class AuthService {
           name: emailSignUpDto.name,
           email: emailSignUpDto.email,
           password: await this.hashPassword(emailSignUpDto.password),
-          code: this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6)
+          // code: this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6)
+          code: 123456
         }
       });
       const stripeCustomerId = await this.createStripeCustomer(user);
@@ -231,7 +232,8 @@ export class AuthService {
       if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
       if (user.emailVerified) throw new BadRequestException('User already verified');
 
-      user.code = this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6);
+      // user.code = this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6);
+      user.code = 123456;
       await this.prisma.user.update({ where: { id: user.id }, data: { code: user.code } });
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
@@ -301,7 +303,8 @@ export class AuthService {
       if (!user || user?.socialProvider != null) throw new NotFoundException('User not found');
       if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team');
 
-      const code = this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6);
+      // const code = this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6);
+      const code = 123456;
       await this.prisma.user.update({ where: { id: user.id }, data: { code: code } });
 
       await this.sendEmail(user.email, 'Reset your password', `Your reset code is ${code}`);

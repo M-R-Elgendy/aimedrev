@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client'
 @Injectable()
 export class ReviewsService {
 
-  private readonly prisma: PrismaClient = new PrismaClient();
+  constructor(private readonly prisma: PrismaClient) { }
 
   async create(createReviewDto: CreateReviewDto) {
     try {

@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { ObjectIdDto } from 'src/global/DTOs/object-id.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
@@ -9,6 +9,12 @@ import { Role } from 'src/global/types';
 @Controller('subscription')
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) { }
+
+  @UseGuards(AuthGuard)
+  @Post('subscripe/:id') // plan Id
+  async create(@Param() params: ObjectIdDto) {
+    return this.subscriptionService.create(params.id)
+  }
 
   @UseGuards(AuthGuard, RoleGuard)
   @Roles([Role.ADMIN])

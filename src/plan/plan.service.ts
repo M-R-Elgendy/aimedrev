@@ -2,20 +2,19 @@ import { HttpStatus, Injectable, HttpException } from '@nestjs/common';
 import { CreatePlanDto, FREQUENCY } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Plan, PrismaClient } from '@prisma/client'
-import { AuthContext } from 'src/auth/auth.context';
-import { Utlis } from 'src/global/utlis';
+// import { Utlis } from 'src/global/utlis';
 import { StripeService } from 'src/stripe/stripe.service';
-import { SubscriptionService } from 'src/subscription/subscription.service';
 import Stripe from 'stripe';
 import * as moment from 'moment';
 
 @Injectable()
 export class PlanService {
 
-  constructor(private readonly authContext: AuthContext, private stripeService: StripeService) { }
-  private readonly prisma: PrismaClient = new PrismaClient();
-  private readonly utlis: Utlis = new Utlis();
-  private readonly subscriptionService: SubscriptionService = new SubscriptionService();
+  constructor(
+    private stripeService: StripeService,
+    private readonly prisma: PrismaClient,
+    // private readonly utlis: Utlis
+  ) { }
 
   async create(createPlanDto: CreatePlanDto) {
     try {
@@ -118,7 +117,7 @@ export class PlanService {
         const prices = await this.stripeService.getProductPrices(plan.stripeProductId);
 
         const archivePromises = prices.data.map(async (price) => {
-          return this.stripeService.updatePrice(price.id, { active: false, lookup_key: `${price.lookup_key}-${this.utlis.generateRandomNumber(7)}` });
+          return this.stripeService.updatePrice(price.id, { active: false, lookup_key: `${price.lookup_key}-${/*this.utlis.generateRandomNumber(7)*/ 123456789}` });
         });
 
         await Promise.all(archivePromises);
@@ -180,78 +179,7 @@ export class PlanService {
     }
   }
 
-  async supscribe(id: string) {
-
-    try {
-
-      const plan = await this.prisma.plan.findFirst({
-        where: { id: id, isActive: true, isDeleted: false },
-      });
-
-      const user = await this.prisma.user.findFirst({
-        where: {
-          id: this.authContext.getUser().id,
-          isDeleted: false,
-          isBlocked: false
-        },
-        include: { Subscription: true }
-      });
-
-      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (!user) throw new HttpException({ message: 'User not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-
-      const hasActiveSubscription = this.subscriptionService.hasActiveSubscription(user);
-      if (hasActiveSubscription) {
-        throw new HttpException({ message: 'User already have a plan', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST)
-      }
-
-      const { price, userCountryCode } = await this.getPlanPrice(plan);
-      const { periodUnit, intervalCount } = this.getPalnFrequancy(plan);
-
-      const endDate = (periodUnit) ? moment().add(intervalCount, periodUnit).toDate() : null;
-      const createdSupscription = await this.prisma.subscription.create({
-        data: {
-          startDate: moment().toDate(),
-          endDate: endDate,
-          totalQueries: plan.qeriesCount,
-          price: price.unit_amount / 100,
-          userId: this.authContext.getUser().id,
-          planId: plan.id
-        }
-      });
-
-      const checkoutSession = await this.stripeService.createCheckOutSession({
-        customer_email: user.email,
-        success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${createdSupscription.id}`,
-        cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
-        line_items: [
-          {
-            price: price.id,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        payment_method_types: ["card"],
-        saved_payment_method_options: {
-          payment_method_save: "enabled",
-        },
-      });
-      await this.prisma.subscription.update({ where: { id: createdSupscription.id }, data: { stripeSession: checkoutSession as object } });
-
-      return {
-        message: "Session created successfully",
-        createdSupscription,
-        checkoutSessionURL: checkoutSession.url,
-        statusCode: HttpStatus.OK
-      }
-
-    } catch (error) {
-      throw error;
-    }
-
-  }
-
-  private getPalnFrequancy(plan: Plan) {
+  getPalnFrequancy(plan: Plan) {
 
     let periodUnit: moment.unitOfTime.Base | null, intervalCount: number;
     switch (plan.frequency) {
@@ -287,13 +215,13 @@ export class PlanService {
     return { periodUnit, intervalCount };
   }
 
-  private async getPlanPrice(plan: Plan) {
+  async getPlanPrice(plan: Plan) {
     try {
 
       // const userIP = this.authContext.getUser().IP;
       // const userIP = '197.62.223.227'; // EG IP
       const userIP = '104.244.42.1'; // US IP
-      const userCountrData = await this.utlis.getCountryCodeFromIP(userIP);
+      const userCountrData = /*await this.utlis.getCountryCodeFromIP(userIP)*/ { country_code: 'EG' };
       const userCountryCode = userCountrData.country_code;
 
 

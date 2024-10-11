@@ -3,7 +3,7 @@ import { StripeService } from './stripe/stripe.service';
 @Injectable()
 export class AppService {
 
-  private stripeService = new StripeService();
+  constructor(private readonly stripeService: StripeService) { }
   async getSession(id: string) {
     return await this.stripeService.getSession(id);
   }

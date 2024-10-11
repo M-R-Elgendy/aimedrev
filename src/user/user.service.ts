@@ -1,5 +1,5 @@
 import { Injectable, HttpStatus, ConflictException, NotFoundException } from '@nestjs/common';
-import { PrismaClient, User } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthContext } from 'src/auth/auth.context';
@@ -8,9 +8,11 @@ import Stripe from 'stripe';
 @Injectable()
 export class UserService {
 
-  private readonly prisma: PrismaClient = new PrismaClient();
-  private readonly stripeService: StripeService = new StripeService();
-  constructor(private readonly authContext: AuthContext) { }
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly stripeService: StripeService,
+    private readonly authContext: AuthContext
+  ) { }
 
   create(createUserDto: CreateUserDto) {
     return 'This action adds a new user';
