@@ -143,6 +143,7 @@ export class SubscriptionService {
           usedQuries: true,
           endDate: true,
           transactionId: true,
+          stripeScpscriptionId: true,
           plan: {
             select: {
               id: true,
@@ -187,6 +188,7 @@ export class SubscriptionService {
       if (subscription.isVerified) throw new UnprocessableEntityException("Subscription is verified");
 
       await this.prisma.subscription.update({ where: { id: id }, data: { isDeleted: true } });
+      await this.stripeService.revokeSubscription(subscription.stripeScpscriptionId);
 
       return {
         message: 'Subscription deleted successfully',
@@ -282,12 +284,83 @@ export class SubscriptionService {
 
   async handelSuccessInvoiceEvent(invoiceData: Stripe.Invoice) {
     try {
+      console.log('start')
 
-      const customerId = invoiceData.customer;
-      const subscriptionId = invoiceData.subscription;
+      const customerId = 'cus_R0TCeE4pPfw2r8';
+      const subscriptionId = 'sub_1Q8lgfQmWoP9SDEIOGWJeghr';
+      const planId = 'prod_R0THE1NwHfWmSh';
+      const paymentIntentId = 'pi_3Q8lvoQmWoP9SDEI0oKiBzN8';
+
+      // const customerId = invoiceData.customer;
+      // const subscriptionId = invoiceData.subscription; 
+      // const planId = invoiceData.lines.data[0].price.product;
+      // const paymentIntentId = invoiceData.payment_intent;
       const paymentDate = moment(invoiceData.period_start).format('YYYY-MM-DD');
-      const priceId = invoiceData.lines.data[0].price.id;
-      const priceAmoint = invoiceData.lines.data[0].price.unit_amount / 100;
+      const priceAmount = invoiceData.amount_paid / 100;
+
+      const user = await this.prisma.user.findFirst({
+        where: {
+          stripeCustomerId: customerId as string,
+          isDeleted: false,
+          isBlocked: false
+        },
+        include: { Subscription: true }
+      });
+
+      const hasActiveSubscription = this.hasActiveSubscription(user);
+      if (hasActiveSubscription) {
+        throw new BadRequestException('User already have a plan')
+      } else {
+        // Revoke all user subscriptions
+        await this.stripeService.revokeCustomerSubscriptions(customerId as string);
+        await this.prisma.subscription.updateMany({
+          where: { userId: user.id },
+          data: { isActive: false }
+        });
+      }
+
+      const plan = await this.prisma.plan.findFirst({
+        where: { stripeProductId: planId as string, isActive: true, isDeleted: false },
+      });
+
+      if (!plan) {
+        // Refund user 
+        await this.stripeService.refundInvoice(paymentIntentId as string);
+        console.warn('Plan not fount, invoice Refunded')
+        throw new NotFoundException('Plan not found');
+      }
+
+      const { periodUnit, intervalCount } = this.planService.getPalnFrequancy(plan);
+      const endDate = (periodUnit) ? moment().add(intervalCount, periodUnit).toDate() : null;
+
+      const transaction = await this.prisma.transaction.create({
+        data: {
+          paymentMethod: 'card',
+          stripeSession: invoiceData as object,
+          tran_ref: invoiceData.id,
+          amount: invoiceData.amount_paid / 100,
+          currency: invoiceData.currency,
+          userId: user.id,
+          planId: plan.id
+        }
+      });
+
+      await this.prisma.subscription.create({
+        data: {
+          startDate: moment().toDate(),
+          endDate: endDate,
+          totalQueries: plan.qeriesCount,
+          isActive: true,
+          isVerified: true,
+          price: priceAmount,
+          userId: user.id,
+          stripeScpscriptionId: subscriptionId as string,
+          planId: plan.id,
+          transactionId: transaction.id
+        }
+      });
+
+      return true;
 
     } catch (error) {
       throw error;

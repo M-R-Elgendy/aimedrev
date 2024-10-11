@@ -28,12 +28,16 @@ export class StripeController {
     const event = this.stripeService.constructEvent(req.body, sig as string);
     switch (event.type) {
       case 'invoice.payment_succeeded':
-        this.subscriptionService.handelSuccessInvoiceEvent(event.data.object);
+        await this.subscriptionService.handelSuccessInvoiceEvent(event.data.object);
         break;
-      case 'invoice.payment_failed':
-        this.subscriptionService.handelSubscriptionExpiringEvent(event);
+      case 'subscription_schedule.expiring':
+        await this.subscriptionService.handelSubscriptionExpiringEvent(event);
+        break;
       default:
-        throw new UnprocessableEntityException('Un-suported event');
+        console.log(`Unhandled event type ${event.type}`);
+        return { code: 422, message: `Unhandled event type ${event.type}` };
     }
+
+    return { message: 'Subscription renewd successfully' };
   }
 }

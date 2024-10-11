@@ -75,6 +75,20 @@ export class StripeService {
         return subscription;
     }
 
+    async revokeCustomerSubscriptions(id: string) {
+        const subscriptions = await this.stripe.subscriptions.list({ customer: id, status: 'active' });
+
+        if (subscriptions.data.length === 0) {
+            return { message: 'No active subscriptions found for this customer.' };
+        }
+
+        const cancelPromises = subscriptions.data.map(subscription =>
+            this.stripe.subscriptions.update(subscription.id, { cancel_at_period_end: true })
+        );
+        await Promise.all(cancelPromises);
+        return subscriptions;
+    }
+
     async getsubscription(id: string) {
         const subscription = await this.stripe.subscriptions.retrieve(id);
         return subscription;
@@ -125,5 +139,12 @@ export class StripeService {
             throw new BadRequestException(`Webhook Error: ${err.message}`);
         }
         return event;
+    }
+
+    async refundInvoice(paymentIntentId: string) {
+        const refund = await this.stripe.refunds.create({
+            payment_intent: paymentIntentId
+        });
+        return refund;
     }
 }
