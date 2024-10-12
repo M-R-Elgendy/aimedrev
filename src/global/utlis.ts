@@ -1,9 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { AxiosService } from "src/axios/axios.service";
+import { ConfigService } from "@nestjs/config";
 @Injectable()
 export class Utlis {
 
-    constructor(private readonly axiosService: AxiosService) { }
+    constructor(
+        private readonly axiosService: AxiosService,
+        private readonly configService: ConfigService
+    ) { }
 
     generateRandomNumber(length: number): number {
         const digits = '0123456789';
@@ -15,7 +19,7 @@ export class Utlis {
     }
 
     async getCountryCodeFromIP(IP: string): Promise<{ country_code: string }> {
-        const response = await this.axiosService.get(`${process.env.IP_API_URL}/${IP}/json/`);
+        const response = await this.axiosService.get(`${this.configService.getOrThrow('IP_API_URL')}/${IP}/json/`);
         return response.data;
     }
 }

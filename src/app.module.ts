@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AxiosService } from './axios/axios.service';
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
@@ -22,6 +22,9 @@ import { AuthContext } from './auth/auth.context';
 import { Utlis } from './global/utlis';
 import { RefundModule } from './refund/refund.module';
 import { RefundService } from './refund/refund.service';
+import { TranscriptionModule } from './transcription/transcription.module';
+import { OpenAIService } from './openai/openai.service';
+import { FileUploadModule } from './file-upload/file-upload.module';
 
 @Module({
   imports: [
@@ -30,19 +33,23 @@ import { RefundService } from './refund/refund.service';
       isGlobal: true,
     }),
 
-    MailerModule.forRoot({
-      transport: {
-        host: process.env.SMTP_HOST,
-        port: +process.env.SMTP_PORT || 587,
-        secure: (+process.env.SMTP_PORT == 465) ? true : false || false,
-        auth: {
-          user: process.env.SUPPORT_EMAIL,
-          pass: process.env.BREVO_API_KEY,
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: configService.get<string>('SMTP_HOST'),
+          port: +configService.get<number>('SMTP_PORT') || 587,
+          secure: configService.get<number>('SMTP_PORT') === 465,
+          auth: {
+            user: configService.get<string>('SUPPORT_EMAIL'),
+            pass: configService.get<string>('BREVO_API_KEY'),
+          },
         },
-      },
-      defaults: {
-        from: '"No Reply" <no-reply@aimedrev.com>',
-      }
+        defaults: {
+          from: '"No Reply" <no-reply@aimedrev.com>',
+        },
+      }),
+      inject: [ConfigService],
     }),
 
     UserModule,
@@ -55,6 +62,8 @@ import { RefundService } from './refund/refund.service';
     ReviewsModule,
     StripeModule,
     RefundModule,
+    TranscriptionModule,
+    FileUploadModule,
   ],
   controllers: [AppController, StripeController],
   providers: [
@@ -66,7 +75,8 @@ import { RefundService } from './refund/refund.service';
     SubscriptionService,
     AuthContext,
     Utlis,
-    RefundService
+    RefundService,
+    OpenAIService
   ],
 
 })

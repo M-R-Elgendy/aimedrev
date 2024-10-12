@@ -18,6 +18,7 @@ import { Utlis } from 'src/global/utlis';
 import { SessionToken } from '../global/types';
 import { AuthContext } from './auth.context';
 import { StripeService } from 'src/stripe/stripe.service';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class AuthService {
 
@@ -29,7 +30,8 @@ export class AuthService {
     private readonly prisma: PrismaClient,
     private readonly axiosService: AxiosService,
     private readonly utils: Utlis,
-    private readonly stripeService: StripeService
+    private readonly stripeService: StripeService,
+    private readonly configService: ConfigService
   ) { }
 
 
@@ -56,7 +58,7 @@ export class AuthService {
           name: emailSignUpDto.name,
           email: emailSignUpDto.email,
           password: await this.hashPassword(emailSignUpDto.password),
-          code: this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6)
+          code: this.utils.generateRandomNumber(+this.configService.get('OTP_LENGTH') || 6)
         }
       });
       const stripeCustomerId = await this.createStripeCustomer(user);
@@ -67,7 +69,7 @@ export class AuthService {
 
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
 
       return {
         message: 'User created successfully',
@@ -110,7 +112,7 @@ export class AuthService {
       const isPasswordMatch = await this.verifyPassword(emailLoginDto.password, user.password);
       if (!isPasswordMatch) throw new UnauthorizedException('Invalid credentials')
 
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
       return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
 
     } catch (error) {
@@ -128,7 +130,7 @@ export class AuthService {
         "Content-Type": "application/json",
         'Authorization': `Bearer ${accessToken}`
       };
-      const googleUser = await this.axiosService.get(process.env.GOOGLE_AUTH_URL, headers);
+      const googleUser = await this.axiosService.get(this.configService.getOrThrow('GOOGLE_AUTH_URL'), headers);
 
       if (googleUser.status !== 200) throw new HttpException({ message: "Invalid token", status: googleUser.status }, googleUser.status);
 
@@ -177,7 +179,7 @@ export class AuthService {
         });
       }
 
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: process.env.JWT_SECRET });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
 
       return { message: 'User created successfully', statusCode: HttpStatus.CREATED, token };
 
@@ -192,7 +194,7 @@ export class AuthService {
     if (!token) throw new UnauthorizedException('Invalid token');
     try {
       const tokenValue = token.replace('Bearer ', '');
-      const decoded = await this.jwtService.verifyAsync(tokenValue, { secret: process.env.JWT_SECRET }) as SessionToken;
+      const decoded = await this.jwtService.verifyAsync(tokenValue, { secret: this.configService.getOrThrow('JWT_SECRET') }) as SessionToken;
 
       const user = (await this.userService.findOne(decoded.id))?.data || null;
 
@@ -231,7 +233,7 @@ export class AuthService {
       if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
       if (user.emailVerified) throw new BadRequestException('User already verified');
 
-      user.code = this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6);
+      user.code = this.utils.generateRandomNumber(+this.configService.get('OTP_LENGTH') || 6);
 
       await this.prisma.user.update({ where: { id: user.id }, data: { code: user.code } });
 
@@ -302,7 +304,7 @@ export class AuthService {
       if (!user || user?.socialProvider != null) throw new NotFoundException('User not found');
       if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team');
 
-      const code = this.utils.generateRandomNumber(+process.env.OTP_LENGTH || 6);
+      const code = this.utils.generateRandomNumber(+this.configService.get('OTP_LENGTH') || 6);
 
       await this.prisma.user.update({ where: { id: user.id }, data: { code: code } });
 
@@ -396,7 +398,7 @@ export class AuthService {
 
   private async hashPassword(password: string): Promise<string> {
     try {
-      const hash = hashSync(password, +process.env.SALT_ROUNDS);
+      const hash = hashSync(password, +this.configService.get('SALT_ROUNDS') || 10);
       return hash;
     } catch (error) {
       throw new Error('Error hashing password');

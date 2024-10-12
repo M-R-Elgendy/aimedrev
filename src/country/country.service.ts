@@ -3,12 +3,15 @@ import { CreateCountryDto } from './dto/create-country.dto';
 import { UpdateCountryDto } from './dto/update-country.dto';
 import { PrismaClient, Prisma } from '@prisma/client'
 import { AxiosService } from 'src/axios/axios.service';
+import { ConfigService } from '@nestjs/config';
+
 @Injectable()
 export class CountryService {
 
   constructor(
     private readonly prisma: PrismaClient,
-    private readonly axiosService: AxiosService
+    private readonly axiosService: AxiosService,
+    private readonly configService: ConfigService
   ) { }
 
   async create(createCountryDto: CreateCountryDto) {
@@ -138,7 +141,7 @@ export class CountryService {
 
   private async isValidCountryData(createCountryDto: CreateCountryDto): Promise<Boolean> {
     try {
-      const response = await this.axiosService.get(process.env.COUNTRIES_API);
+      const response = await this.axiosService.get(this.configService.getOrThrow('COUNTRIES_API'));
       if (response.status !== 200 || response.data.error == true) return true;
       const countries = response.data.data;
       return countries.some((country: { code: string, dial_code: string }) => country.code === createCountryDto.ISOCode && country.dial_code === `+${createCountryDto.phoneCode}`);
@@ -149,7 +152,7 @@ export class CountryService {
 
   private async getCountryFromPhoneCode(phonecode: number): Promise<{ found: boolean, name?: string, code?: string, dial_code?: string }> {
 
-    const response = await this.axiosService.get(process.env.COUNTRIES_API);
+    const response = await this.axiosService.get(this.configService.getOrThrow('COUNTRIES_API'));
 
     if (response.status !== 200 || response.data.error === true) return { found: false };
 

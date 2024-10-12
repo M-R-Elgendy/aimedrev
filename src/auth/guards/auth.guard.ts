@@ -4,6 +4,8 @@ import {
     ForbiddenException,
     Injectable,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
 import { JwtService } from '@nestjs/jwt';
 import { FastifyRequest } from 'fastify';
 import { AuthContext } from '../auth.context';
@@ -12,7 +14,10 @@ import { SessionToken } from '../../global/types';
 @Injectable()
 export class AuthGuard implements CanActivate {
 
-    constructor(private readonly authContext: AuthContext) { }
+    constructor(
+        private readonly authContext: AuthContext,
+        private readonly configService: ConfigService
+    ) { }
     private readonly jwtService: JwtService = new JwtService();
 
     async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -29,7 +34,7 @@ export class AuthGuard implements CanActivate {
         }
 
         try {
-            const payload = await this.jwtService.verifyAsync<SessionToken>(token, { secret: process.env.JWT_SECRET });
+            const payload = await this.jwtService.verifyAsync<SessionToken>(token, { secret: this.configService.getOrThrow('JWT_SECRET') });
             (request as any).session = payload;
             payload.IP = request.ip;
             this.authContext.setUser(payload);

@@ -1,14 +1,16 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import Stripe from 'stripe';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
+import Stripe from 'stripe';
 @Injectable()
 export class StripeService {
 
     constructor(
         private readonly prisma: PrismaClient,
+        private readonly configService: ConfigService
     ) { }
 
-    private readonly stripe = new Stripe(process.env.STRIPE_API_TEST_KEY_PRIVATE);
+    private readonly stripe = new Stripe(this.configService.getOrThrow('STRIPE_API_TEST_KEY_PRIVATE'));
 
     async createCheckOutSession(date: Stripe.Checkout.SessionCreateParams) {
         const session = await this.stripe.checkout.sessions.create(date);
@@ -136,7 +138,7 @@ export class StripeService {
     }
 
     constructEvent(payload: Buffer, sig: string): Stripe.Event {
-        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        const webhookSecret = this.configService.getOrThrow('STRIPE_WEBHOOK_SECRET');
         let event: Stripe.Event;
         try {
             event = this.stripe.webhooks.constructEvent(payload, sig, webhookSecret);

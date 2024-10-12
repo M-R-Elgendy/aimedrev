@@ -1,4 +1,5 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { StripeService } from 'src/stripe/stripe.service';
 import { PlanService } from 'src/plan/plan.service';
 import { PrismaClient, User, Subscription } from '@prisma/client';
@@ -15,7 +16,8 @@ export class SubscriptionService {
     private readonly planService: PlanService,
     private readonly stripeService: StripeService,
     private readonly prisma: PrismaClient,
-    private readonly refundService: RefundService
+    private readonly refundService: RefundService,
+    private readonly configService: ConfigService
   ) { }
 
   async create(id: string) {
@@ -59,8 +61,8 @@ export class SubscriptionService {
 
       const checkoutSession = await this.stripeService.createCheckOutSession({
         customer_email: user.email,
-        success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${createdSupscription.id}`,
-        cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
+        success_url: `${this.configService.getOrThrow('PAYMENT_SUCCESS_CALLBACK_PATH')}/${createdSupscription.id}`,
+        cancel_url: this.configService.getOrThrow('PAYMENT_CANCEL_CALLBACK'),
         line_items: [
           {
             price: price.id,
