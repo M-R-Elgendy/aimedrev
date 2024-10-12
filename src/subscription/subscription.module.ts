@@ -7,6 +7,9 @@ import { PrismaClient } from '@prisma/client';
 import { AuthContext } from 'src/auth/auth.context';
 import { Utlis } from 'src/global/utlis';
 import { AxiosService } from 'src/axios/axios.service';
+import { RefundService } from 'src/refund/refund.service';
+
+
 @Module({
   controllers: [SubscriptionController],
   providers: [
@@ -16,7 +19,8 @@ import { AxiosService } from 'src/axios/axios.service';
     PrismaClient,
     AuthContext,
     Utlis,
-    AxiosService
+    AxiosService,
+    RefundService
   ],
 })
 export class SubscriptionModule { }

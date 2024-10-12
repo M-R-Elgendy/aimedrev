@@ -16,7 +16,7 @@ export class StripeController {
 
   @Post('create-webhook')
   @UseGuards(AuthGuard, RoleGuard)
-  @Roles([Role.ADMIN])
+  // @Roles([Role.ADMIN])
   async createWebHookEndpoint() {
     const webhookEndpoint = await this.stripeService.createWebHookEndpoint();
     return webhookEndpoint;
@@ -31,9 +31,16 @@ export class StripeController {
         await this.subscriptionService.handelSuccessInvoiceEvent(event.data.object);
         break;
       case 'subscription_schedule.expiring':
-        await this.subscriptionService.handelSubscriptionExpiringEvent(event);
+        await this.subscriptionService.handelSubscriptionExpiringEvent(event.data.object);
+        break;
+      case 'charge.refund.updated':
+        // Update refund status => using charge
+        break;
+      case 'charge.refunded':
+        // mark refun as success        
         break;
       default:
+        console.log(JSON.stringify(event, null, 2));
         console.log(`Unhandled event type ${event.type}`);
         return { code: 422, message: `Unhandled event type ${event.type}` };
     }

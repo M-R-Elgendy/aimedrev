@@ -5,6 +5,8 @@ import { PrismaClient, User, Subscription } from '@prisma/client';
 import { AuthContext } from 'src/auth/auth.context';
 import Stripe from 'stripe';
 import * as moment from 'moment';
+import { RefundService } from 'src/refund/refund.service';
+import { RefundStatus } from 'src/refund/dto/create-refund.dto';
 @Injectable()
 export class SubscriptionService {
 
@@ -12,7 +14,8 @@ export class SubscriptionService {
     private readonly authContext: AuthContext,
     private readonly planService: PlanService,
     private readonly stripeService: StripeService,
-    private readonly prisma: PrismaClient
+    private readonly prisma: PrismaClient,
+    private readonly refundService: RefundService
   ) { }
 
   async create(id: string) {
@@ -284,7 +287,6 @@ export class SubscriptionService {
 
   async handelSuccessInvoiceEvent(invoiceData: Stripe.Invoice) {
     try {
-      console.log('start')
 
       const customerId = 'cus_R0TCeE4pPfw2r8';
       const subscriptionId = 'sub_1Q8lgfQmWoP9SDEIOGWJeghr';
@@ -295,7 +297,6 @@ export class SubscriptionService {
       // const subscriptionId = invoiceData.subscription; 
       // const planId = invoiceData.lines.data[0].price.product;
       // const paymentIntentId = invoiceData.payment_intent;
-      const paymentDate = moment(invoiceData.period_start).format('YYYY-MM-DD');
       const priceAmount = invoiceData.amount_paid / 100;
 
       const user = await this.prisma.user.findFirst({
@@ -307,27 +308,34 @@ export class SubscriptionService {
         include: { Subscription: true }
       });
 
-      const hasActiveSubscription = this.hasActiveSubscription(user);
-      if (hasActiveSubscription) {
-        throw new BadRequestException('User already have a plan')
-      } else {
-        // Revoke all user subscriptions
-        await this.stripeService.revokeCustomerSubscriptions(customerId as string);
-        await this.prisma.subscription.updateMany({
-          where: { userId: user.id },
-          data: { isActive: false }
-        });
+      if (!user) {
+        await this.refundInvoice(paymentIntentId as string, user);
+        console.warn('User not fount, invoice Refunded')
+        throw new BadRequestException('Invlaid user id')
       }
+
 
       const plan = await this.prisma.plan.findFirst({
         where: { stripeProductId: planId as string, isActive: true, isDeleted: false },
       });
 
       if (!plan) {
-        // Refund user 
-        await this.stripeService.refundInvoice(paymentIntentId as string);
+        await this.refundInvoice(paymentIntentId as string, user);
         console.warn('Plan not fount, invoice Refunded')
         throw new NotFoundException('Plan not found');
+      }
+
+      const hasActiveSubscription = this.hasActiveSubscription(user);
+      if (hasActiveSubscription) {
+        await this.refundInvoice(paymentIntentId as string, user);
+        console.warn('User already have a plan, invoice Refunded')
+        throw new BadRequestException('User already have a plan')
+      } else {
+        await this.stripeService.revokeCustomerSubscriptions(customerId as string);
+        await this.prisma.subscription.updateMany({
+          where: { userId: user.id },
+          data: { isActive: false }
+        });
       }
 
       const { periodUnit, intervalCount } = this.planService.getPalnFrequancy(plan);
@@ -369,6 +377,27 @@ export class SubscriptionService {
 
   async handelSubscriptionExpiringEvent(event: Stripe.Event.Data.Object) {
 
+  }
+
+  async handelRefundUpdateEvent(event: Stripe.Event.Data.Object) {
+
+  }
+
+  async handelRefundSuccessEvent(event: Stripe.Event.Data.Object) {
+
+  }
+
+  private async refundInvoice(paymentIntentId: string, user: User | null) {
+    const refund = await this.stripeService.refundInvoice(paymentIntentId);
+    const { amount, charge } = refund;
+    await this.refundService.create({
+      paymentIntentId: paymentIntentId,
+      refundAmount: amount / 100,
+      chargeId: charge as string,
+      data: refund,
+      userId: user?.id
+    });
+    return refund;
   }
 
 }

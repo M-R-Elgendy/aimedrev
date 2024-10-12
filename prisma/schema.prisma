@@ -20,6 +20,12 @@ enum FREQUENCY {
   unlimited
 }
 
+enum REFUND_STATUS {
+  PERNDING
+  SUCCESS
+  CANCELED
+}
+
 model Country {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId
   ISOCode   String  @unique
@@ -93,11 +99,12 @@ model User {
   googleData   GoogleData? @relation(fields: [googleDataId], references: [id])
   googleDataId String?     @db.ObjectId
 
-  Transaction Transaction[]
-
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  Transaction  Transaction[]
   Subscription Subscription[]
+  Refund       Refund[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([name, email, phone, paidUser])
 }
@@ -162,4 +169,22 @@ model Review {
 model StripeWebhook {
   id          String @id @default(auto()) @map("_id") @db.ObjectId
   webhookData Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Refund {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  paymentIntentId String
+  chargeId        String // Charge Id equal id from the web hook
+  refundAmount    Int
+  data            Json
+  refundStatus    REFUND_STATUS @default(PERNDING)
+
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String? @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

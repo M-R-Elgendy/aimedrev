@@ -21,6 +21,9 @@ import { PlanService } from './plan/plan.service';
 import { SubscriptionService } from './subscription/subscription.service';
 import { AuthContext } from './auth/auth.context';
 import { Utlis } from './global/utlis';
+import { RefundModule } from './refund/refund.module';
+import { RefundService } from './refund/refund.service';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -51,7 +54,8 @@ import { Utlis } from './global/utlis';
     SubscriptionModule,
     AuthContextModule,
     ReviewsModule,
-    StripeModule
+    StripeModule,
+    RefundModule,
   ],
   controllers: [AppController, StripeController],
   providers: [
@@ -63,7 +67,8 @@ import { Utlis } from './global/utlis';
     PlanService,
     SubscriptionService,
     AuthContext,
-    Utlis
+    Utlis,
+    RefundService
   ],
 
 })

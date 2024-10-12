@@ -116,7 +116,13 @@ export class StripeService {
     async createWebHookEndpoint() {
         const webhookEndpoint: Stripe.WebhookEndpoint = await this.stripe.webhookEndpoints.create({
             url: 'https://aimedrev-api-staging.onrender.com/api/v1/stripe/webhooks/live/test',
-            enabled_events: ['invoice.payment_succeeded', 'invoice.payment_failed', 'subscription_schedule.expiring']
+            enabled_events: [
+                'invoice.payment_succeeded',
+                'invoice.payment_failed',
+                'subscription_schedule.expiring',
+                'charge.refunded',
+                'charge.refund.updated'
+            ]
         });
         await this.prisma.stripeWebhook.create({ data: { webhookData: webhookEndpoint as object } });
         return webhookEndpoint;
