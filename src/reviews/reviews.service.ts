@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, HttpException } from '@nestjs/common';
+import { HttpStatus, Injectable, HttpException, BadRequestException } from '@nestjs/common';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
 import { PrismaClient } from '@prisma/client'
@@ -38,7 +38,7 @@ export class ReviewsService {
     try {
       const review = await this.prisma.review.findUnique({ where: { id: id } });
 
-      if (!review) throw new HttpException({ message: 'Review not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!review) throw new BadRequestException('Review not found')
 
       return {
         message: "Review fetched successfully",

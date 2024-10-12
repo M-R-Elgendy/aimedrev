@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, HttpException } from '@nestjs/common';
+import { HttpStatus, Injectable, HttpException, NotFoundException, BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { CreatePlanDto, FREQUENCY } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Plan, PrismaClient } from '@prisma/client'
@@ -74,7 +74,7 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!plan) throw new NotFoundException('Plan not found');
 
       return {
         message: "Plan fetched successfully",
@@ -93,7 +93,7 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!plan) throw new NotFoundException('Plan not found');
       const updatedPlan = await this.prisma.plan.update({ where: { id: id }, data: updatePlanDto });
 
       const stripeProductUpdate: Stripe.ProductUpdateParams = {
@@ -140,7 +140,7 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
+      if (!plan) throw new NotFoundException('Plan not found');
 
       await this.prisma.plan.update({ where: { id: id }, data: { isDeleted: true } });
       await this.stripeService.updateProduct(plan.stripeProductId, { active: false });
@@ -162,8 +162,8 @@ export class PlanService {
         where: { id: id, isDeleted: false },
       });
 
-      if (!plan) throw new HttpException({ message: 'Plan not found', statusCode: HttpStatus.NOT_FOUND }, HttpStatus.NOT_FOUND);
-      if (plan.isActive == isActive) throw new HttpException({ message: 'Plan already ' + (isActive ? 'active' : 'inactive'), statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+      if (!plan) throw new NotFoundException('Plan not found');
+      if (plan.isActive == isActive) throw new BadRequestException('Plan already ' + (isActive ? 'active' : 'inactive'));
 
       const updatedPlan = await this.prisma.plan.update({ where: { id: id }, data: { isActive: isActive } });
       await this.stripeService.updateProduct(plan.stripeProductId, { active: isActive });
@@ -208,7 +208,7 @@ export class PlanService {
         intervalCount = null
         break;
       default:
-        throw new HttpException({ message: 'Invalid frequency', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+        throw new UnprocessableEntityException('Invalid frequency');
         break;
     }
 
@@ -230,7 +230,7 @@ export class PlanService {
 
       priceData = await this.stripeService.getProductPrices(plan.stripeProductId, lookupKey);
 
-      if (!priceData?.data?.length) throw new HttpException({ message: 'Plan not available in your country', statusCode: HttpStatus.BAD_REQUEST }, HttpStatus.BAD_REQUEST);
+      if (!priceData?.data?.length) throw new BadRequestException('Plan not available in your country');
 
       const price = priceData.data[0];
 

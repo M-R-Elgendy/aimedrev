@@ -1,34 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { RefundService } from './refund.service';
-import { CreateRefundDto } from './dto/create-refund.dto';
-import { UpdateRefundDto } from './dto/update-refund.dto';
-
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { Roles } from '../global/decorators/role.decorator';
+import { Role } from 'src/global/types';
+import { ObjectIdDto } from 'src/global/DTOs/object-id.dto';
 @Controller('refund')
+@UseGuards(AuthGuard, RoleGuard)
 export class RefundController {
+
   constructor(private readonly refundService: RefundService) { }
 
-  // @Post()
-  // create(@Body() createRefundDto: CreateRefundDto) {
-  //   return this.refundService.create(createRefundDto);
-  // }
-
   @Get()
+  @Roles([Role.ADMIN])
   findAll() {
     return this.refundService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.refundService.findOne(+id);
+  @Roles([Role.ADMIN])
+  findOne(@Param() params: ObjectIdDto) {
+    return this.refundService.findOne(params.id);
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateRefundDto: UpdateRefundDto) {
-  //   return this.refundService.update(+id, updateRefundDto);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.refundService.remove(+id);
-  // }
 }

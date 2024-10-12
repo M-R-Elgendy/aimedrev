@@ -7,7 +7,6 @@ import { AxiosService } from './axios/axios.service';
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { PlanModule } from './plan/plan.module';
-import { RevenuecatService } from './revenuecat/revenuecat.service';
 import { StripeService } from './stripe/stripe.service';
 import { CountryModule } from './country/country.module';
 import { TransactionModule } from './transaction/transaction.module';
@@ -61,7 +60,6 @@ import { RefundService } from './refund/refund.service';
   providers: [
     AppService,
     AxiosService,
-    RevenuecatService,
     StripeService,
     PrismaClient,
     PlanService,

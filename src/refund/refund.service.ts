@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateRefundDto } from './dto/create-refund.dto';
 import { UpdateRefundDto } from './dto/update-refund.dto';
 import { PrismaClient } from '@prisma/client';
@@ -18,19 +18,35 @@ export class RefundService {
     }
   }
 
-  findAll() {
-    return `This action returns all refund`;
+  async findAll() {
+    try {
+      const refunds = await this.prisma.refund.findMany({ orderBy: { id: 'desc' } });
+      return {
+        message: "Refunds fetched successfully",
+        data: refunds,
+        statusCode: HttpStatus.OK
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} refund`;
-  }
+  async findOne(id: string) {
+    try {
+      const refund = await this.prisma.refund.findFirst({
+        where: { id: id },
+      });
 
-  update(id: number, updateRefundDto: UpdateRefundDto) {
-    return `This action updates a #${id} refund`;
-  }
+      if (!refund) throw new NotFoundException('Refund not found');
 
-  remove(id: number) {
-    return `This action removes a #${id} refund`;
+      return {
+        message: "Refund fetched successfully",
+        data: refund,
+        statusCode: HttpStatus.OK
+      }
+
+    } catch (error) {
+      throw error;
+    }
   }
 }
