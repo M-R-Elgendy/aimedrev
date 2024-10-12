@@ -396,7 +396,7 @@ export class AuthService {
 
   private async hashPassword(password: string): Promise<string> {
     try {
-      const hash = await hashSync(password, +process.env.SALT_ROUNDS);
+      const hash = hashSync(password, +process.env.SALT_ROUNDS);
       return hash;
     } catch (error) {
       throw new Error('Error hashing password');
@@ -405,7 +405,7 @@ export class AuthService {
 
   private async verifyPassword(password: string, hash: string): Promise<boolean> {
     try {
-      const isMatch = await compareSync(password, hash);
+      const isMatch = compareSync(password, hash);
       return isMatch;
     } catch (error) {
       throw new Error('Error verifying password');
