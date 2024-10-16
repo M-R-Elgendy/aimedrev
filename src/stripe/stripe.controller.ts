@@ -28,21 +28,27 @@ export class StripeController {
     const sig = req.headers['stripe-signature'];
     const event = this.stripeService.constructEvent(req.body, sig as string);
     switch (event.type) {
+
       case 'invoice.payment_succeeded':
+        console.log('invoice.payment_succeeded', new Date());
         await this.subscriptionService.handelSuccessInvoiceEvent(event.data.object);
         break;
+
       case 'subscription_schedule.expiring':
+        console.log('subscription_schedule.expiring', new Date());
         await this.subscriptionService.handelSubscriptionExpiringEvent(event.data.object);
         break;
+
       case 'charge.refund.updated':
+        console.log('charge.refund.updated', new Date());
         await this.subscriptionService.handelRefundUpdateEvent(event.data.object as any);
-        console.log('charge.refund.updated', event.data.object);
         break;
 
       case 'charge.refunded':
+        console.log('charge.refunded', new Date());
         await this.subscriptionService.handelSuccessRefundEvent(event.data.object as any);
-        console.log('charge.refund.updated', event.data.object);
         break;
+
       default:
         console.log(`Unhandled event type ${event.type}`);
         return { code: 422, message: `Unhandled event type ${event.type}` };
