@@ -34,8 +34,6 @@ export class AuthService {
     private readonly configService: ConfigService
   ) { }
 
-
-
   async register(emailSignUpDto: EmailSignUpDto) {
     try {
 

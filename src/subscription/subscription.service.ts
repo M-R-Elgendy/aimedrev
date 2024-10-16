@@ -2,12 +2,12 @@ import { BadRequestException, HttpStatus, Injectable, NotFoundException, Unproce
 import { ConfigService } from '@nestjs/config';
 import { StripeService } from 'src/stripe/stripe.service';
 import { PlanService } from 'src/plan/plan.service';
-import { PrismaClient, User, Subscription } from '@prisma/client';
+import { PrismaClient, User, Subscription, REFUND_STATUS } from '@prisma/client';
 import { AuthContext } from 'src/auth/auth.context';
 import Stripe from 'stripe';
 import * as moment from 'moment';
 import { RefundService } from 'src/refund/refund.service';
-import { RefundStatus } from 'src/refund/dto/create-refund.dto';
+
 @Injectable()
 export class SubscriptionService {
 
@@ -60,7 +60,7 @@ export class SubscriptionService {
       });
 
       const checkoutSession = await this.stripeService.createCheckOutSession({
-        customer_email: user.email,
+        customer: user.stripeCustomerId,
         success_url: `${this.configService.getOrThrow('PAYMENT_SUCCESS_CALLBACK_PATH')}/${createdSupscription.id}`,
         cancel_url: this.configService.getOrThrow('PAYMENT_CANCEL_CALLBACK'),
         line_items: [
@@ -206,99 +206,104 @@ export class SubscriptionService {
   }
 
   async checkout(stripeSessionObject: Stripe.Checkout.SessionCreateParams) {
-    return await this.stripeService.createCheckOutSession(stripeSessionObject)
+    try {
+      return await this.stripeService.createCheckOutSession(stripeSessionObject);
+    } catch (error) {
+      throw error;
+    }
   }
 
   async verify(subscriptionId: string) {
+    try {
 
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { id: subscriptionId, isDeleted: false, isVerified: { not: true } },
-      include: { user: true, plan: true }
-    });
-
-    if (!subscription) throw new NotFoundException("Subscription not found");
-
-    const sessionData: any = subscription.stripeSession
-
-    const updatedSessionData = await this.stripeService.getSession(sessionData.id);
-
-    if (updatedSessionData.payment_status === 'paid' && updatedSessionData.status === 'complete') {
-
-      const transaction = await this.prisma.transaction.create({
-        data: {
-          paymentMethod: 'card',
-          stripeSession: updatedSessionData as object,
-          tran_ref: updatedSessionData.id,
-          amount: (updatedSessionData.amount_total / 100),
-          currency: updatedSessionData.currency,
-          userId: subscription.userId,
-          planId: subscription.planId
-        }
+      const subscription = await this.prisma.subscription.findUnique({
+        where: { id: subscriptionId, isDeleted: false, isVerified: { not: true } },
+        include: { user: true, plan: true }
       });
 
-      const updatedSubscription = await this.prisma.subscription.update({
-        where: { id: subscriptionId },
-        data: {
-          isActive: true,
-          isVerified: true,
-          stripeSession: updatedSessionData as object,
-          transactionId: transaction.id,
-          stripeScpscriptionId: updatedSessionData.subscription as string
-        },
-        select: {
-          id: true,
-          isActive: true,
-          isVerified: true,
-          totalQueries: true,
-          usedQuries: true,
-          endDate: true,
+      if (!subscription) throw new NotFoundException("Subscription not found");
 
-        }
-      });
-      return updatedSubscription
+      const sessionData: any = subscription.stripeSession
+
+      const updatedSessionData = await this.stripeService.getSession(sessionData.id);
+
+      if (updatedSessionData.payment_status === 'paid' && updatedSessionData.status === 'complete') {
+
+        const transaction = await this.prisma.transaction.create({
+          data: {
+            paymentMethod: 'card',
+            stripeSession: updatedSessionData as object,
+            tran_ref: updatedSessionData.id,
+            amount: (updatedSessionData.amount_total / 100),
+            currency: updatedSessionData.currency,
+            userId: subscription.userId,
+            planId: subscription.planId
+          }
+        });
+
+        const updatedSubscription = await this.prisma.subscription.update({
+          where: { id: subscriptionId },
+          data: {
+            isActive: true,
+            isVerified: true,
+            stripeSession: updatedSessionData as object,
+            transactionId: transaction.id,
+            stripeScpscriptionId: updatedSessionData.subscription as string
+          },
+          select: {
+            id: true,
+            isActive: true,
+            isVerified: true,
+            totalQueries: true,
+            usedQuries: true,
+            endDate: true,
+
+          }
+        });
+        return updatedSubscription
+      }
+    } catch (error) {
+      throw error;
     }
-
   }
 
   hasActiveSubscription(user: User & { Subscription: Subscription[] }) {
 
-    if (user.Subscription.length === 0) return false;
+    try {
+      if (user.Subscription.length === 0) return false;
 
-    let isQuriesExpried: boolean = false, isTimeExpired: boolean = false;
-    const lastSubscription = user.Subscription[user.Subscription.length - 1];
+      let isQuriesExpried: boolean = false, isTimeExpired: boolean = false;
+      const lastSubscription = user.Subscription[user.Subscription.length - 1];
 
-    if (!lastSubscription.isActive) return false;
-    if (!lastSubscription.isVerified) return false;
-    if (lastSubscription.isDeleted) return false;
+      if (!lastSubscription.isActive) return false;
+      if (!lastSubscription.isVerified) return false;
+      if (lastSubscription.isDeleted) return false;
 
-    if (lastSubscription.totalQueries > 0) {
-      isQuriesExpried = lastSubscription.usedQuries >= lastSubscription.totalQueries;
+      if (lastSubscription.totalQueries > 0) {
+        isQuriesExpried = lastSubscription.usedQuries >= lastSubscription.totalQueries;
+      }
+
+      if (lastSubscription.endDate) {
+        const lastOfToday = moment().endOf('day').toDate();
+        const lastOfSubscription = moment(lastSubscription.endDate).endOf('day').toDate();
+        isTimeExpired = lastOfSubscription <= lastOfToday;
+      }
+
+      if (lastSubscription.totalQueries > 0 && lastSubscription.endDate) return !isQuriesExpried && !isTimeExpired;
+      if (lastSubscription.endDate) return !isTimeExpired;
+      if (lastSubscription.totalQueries > 0) return !isQuriesExpried;
+    } catch (error) {
+      throw error;
     }
-
-    if (lastSubscription.endDate) {
-      const lastOfToday = moment().endOf('day').toDate();
-      const lastOfSubscription = moment(lastSubscription.endDate).endOf('day').toDate();
-      isTimeExpired = lastOfSubscription <= lastOfToday;
-    }
-
-    if (lastSubscription.totalQueries > 0 && lastSubscription.endDate) return !isQuriesExpried && !isTimeExpired;
-    if (lastSubscription.endDate) return !isTimeExpired;
-    if (lastSubscription.totalQueries > 0) return !isQuriesExpried;
-
   }
 
   async handelSuccessInvoiceEvent(invoiceData: Stripe.Invoice) {
     try {
 
-      const customerId = 'cus_R0TCeE4pPfw2r8';
-      const subscriptionId = 'sub_1Q8lgfQmWoP9SDEIOGWJeghr';
-      const planId = 'prod_R0THE1NwHfWmSh';
-      const paymentIntentId = 'pi_3Q8lvoQmWoP9SDEI0oKiBzN8';
-
-      // const customerId = invoiceData.customer;
-      // const subscriptionId = invoiceData.subscription; 
-      // const planId = invoiceData.lines.data[0].price.product;
-      // const paymentIntentId = invoiceData.payment_intent;
+      const customerId = invoiceData.customer;
+      const subscriptionId = invoiceData.subscription;
+      const planId = invoiceData.lines.data[0].price.product;
+      const paymentIntentId = invoiceData.payment_intent;
       const priceAmount = invoiceData.amount_paid / 100;
 
       const user = await this.prisma.user.findFirst({
@@ -329,15 +334,19 @@ export class SubscriptionService {
 
       const hasActiveSubscription = this.hasActiveSubscription(user);
       if (hasActiveSubscription) {
+
         await this.refundInvoice(paymentIntentId as string, user);
-        console.warn('User already have a plan, invoice Refunded')
-        throw new BadRequestException('User already have a plan')
+        console.warn('User already have a plan, invoice Refunded');
+        throw new BadRequestException('User already have a plan');
+
       } else {
+
         await this.stripeService.revokeCustomerSubscriptions(customerId as string);
         await this.prisma.subscription.updateMany({
           where: { userId: user.id },
           data: { isActive: false }
         });
+
       }
 
       const { periodUnit, intervalCount } = this.planService.getPalnFrequancy(plan);
@@ -370,6 +379,9 @@ export class SubscriptionService {
         }
       });
 
+      await this.stripeService.updateSubscription(subscriptionId as string, user.autoRenewal)
+
+      console.log('Subscription created successfully');
       return true;
 
     } catch (error) {
@@ -378,15 +390,39 @@ export class SubscriptionService {
   }
 
   async handelSubscriptionExpiringEvent(event: Stripe.Event.Data.Object) {
-
+    try {
+      console.log('send a notification')
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async handelRefundUpdateEvent(event: Stripe.Event.Data.Object) {
+  async handelRefundUpdateEvent(event: Stripe.Refund) {
+    try {
+      const paymentIntentId = event.payment_intent;
+      const priceAmount = event.amount / 100;
+      const refundStatus = (event.status === 'succeeded') ? REFUND_STATUS.SUCCESS : REFUND_STATUS.CANCELED;
 
+      await this.refundService.update(paymentIntentId as string, refundStatus, priceAmount);
+      // WE can send an email here
+
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async handelRefundSuccessEvent(event: Stripe.Event.Data.Object) {
+  async handelSuccessRefundEvent(event: Stripe.Charge) {
+    try {
+      const paymentIntentId = event.payment_intent;
+      const priceAmount = event.amount_refunded / 100;
+      const refundStatus = (event.refunded) ? REFUND_STATUS.SUCCESS : REFUND_STATUS.CANCELED;
 
+      await this.refundService.update(paymentIntentId as string, refundStatus, priceAmount);
+      // WE can send an email here
+
+    } catch (error) {
+      throw error;
+    }
   }
 
   private async refundInvoice(paymentIntentId: string, user: User | null) {

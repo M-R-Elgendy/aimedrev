@@ -96,7 +96,7 @@ export class StripeService {
         return subscription;
     }
 
-    async renewSubscription(id: string, renew: boolean) {
+    async updateSubscription(id: string, renew: boolean) {
         const subscription = await this.stripe.subscriptions.update(id, { cancel_at_period_end: !renew });
         return subscription;
     }
@@ -107,7 +107,7 @@ export class StripeService {
             status: 'active',
             limit: 1
         });
-        return subscriptions[0];
+        return subscriptions.data[0];
     }
 
     async createCustomer(date: Stripe.CustomerCreateParams) {

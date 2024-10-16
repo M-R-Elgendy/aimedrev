@@ -1,9 +1,10 @@
-import { Controller, Post, UseGuards, Req, UnprocessableEntityException } from '@nestjs/common';
+import { Controller, Post, UseGuards, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { StripeService } from './stripe.service';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
+import Stripe from 'stripe';
 import { Roles } from '../global/decorators/role.decorator';
 import { Role } from 'src/global/types';
 
@@ -34,13 +35,15 @@ export class StripeController {
         await this.subscriptionService.handelSubscriptionExpiringEvent(event.data.object);
         break;
       case 'charge.refund.updated':
-        // Update refund status => using charge
+        await this.subscriptionService.handelRefundUpdateEvent(event.data.object as any);
+        console.log('charge.refund.updated', event.data.object);
         break;
+
       case 'charge.refunded':
-        // mark refun as success        
+        await this.subscriptionService.handelSuccessRefundEvent(event.data.object as any);
+        console.log('charge.refund.updated', event.data.object);
         break;
       default:
-        console.log(JSON.stringify(event, null, 2));
         console.log(`Unhandled event type ${event.type}`);
         return { code: 422, message: `Unhandled event type ${event.type}` };
     }

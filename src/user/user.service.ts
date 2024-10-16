@@ -151,8 +151,7 @@ export class UserService {
 
       const activeSubscription: Stripe.Subscription = await this.stripeService.getLastActiveSubscription(updatedUser.stripeCustomerId);
       if (activeSubscription)
-        await this.stripeService.renewSubscription(activeSubscription.id, updatedUser.autoRenewal);
-
+        await this.stripeService.updateSubscription(activeSubscription.id, updatedUser.autoRenewal);
 
       return { message: `User updated successfully`, statusCode: HttpStatus.OK, data: updatedUser };
     } catch (error) {

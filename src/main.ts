@@ -6,7 +6,7 @@ import { ValidationError } from 'class-validator';
 import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create(AppModule);
   app.enableCors();
 
   app.useGlobalPipes(
@@ -33,19 +33,6 @@ async function bootstrap() {
   app.useGlobalFilters(new GeneralExceptionFilter());
 
   app.use('/api/v1/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
-
-  // const st = new StripeService();
-  // console.log(await st.createSubscription({
-  //   client_reference_id: "",
-  //   customer_email: '',
-  //   success_url: `${process.env.PAYMENT_SUCCESS_CALLBACK_PATH}/${123 * 10}`,
-  //   cancel_url: process.env.PAYMENT_CANCEL_CALLBACK,
-  //   items: [
-  //     {
-  //       price: 'price_1Q6vUDHGXGocVbgeypnPt5SG'
-  //     },
-  //   ],
-  // }))
 
   await app.listen(process.env.PORT || 3000);
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
