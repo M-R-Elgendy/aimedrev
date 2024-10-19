@@ -36,6 +36,4 @@ export class OpenAIService {
             throw new Error('Failed to transcribe the audio file.');
         }
     }
-
-
 }
