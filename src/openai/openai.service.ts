@@ -1,4 +1,3 @@
-// openai.service.ts
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
@@ -26,7 +25,7 @@ export class OpenAIService {
             });
 
             return {
-                message: "Data proccedded successfully",
+                message: "Data processed successfully",
                 statusCode: HttpStatus.OK,
                 data: {
                     transcription: response.text
