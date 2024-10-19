@@ -1,17 +1,16 @@
-import { Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
 import { FileUploadService } from './file-upload.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
-@Controller('upload')
+@UseGuards(AuthGuard)
+@Controller('file')
 export class FileUploadController {
   constructor(private readonly fileUploadService: FileUploadService) { }
 
-  @Post('file')
+  @Post('upload')
   @UseInterceptors(FileInterceptor('file')) // The field name for the file input
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    const uploadResponse = await this.fileUploadService.uploadFile(file);
-    return {
-      url: uploadResponse.Location, // Return the file URL
-    };
+    return await this.fileUploadService.uploadFile(file);
   }
 }

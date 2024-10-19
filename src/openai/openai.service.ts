@@ -1,5 +1,5 @@
 // openai.service.ts
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import * as fs from 'fs';
@@ -16,7 +16,7 @@ export class OpenAIService {
         });
     }
 
-    async transcribeAudio(filePath: string): Promise<string> {
+    async transcribeAudio(filePath: string) {
         try {
             const fileStream = fs.createReadStream(filePath);
             const response = await this.openai.audio.transcriptions.create({
@@ -24,10 +24,19 @@ export class OpenAIService {
                 model: 'whisper-1',
                 language: 'en',
             });
-            return response.text;
+
+            return {
+                message: "Data proccedded successfully",
+                statusCode: HttpStatus.OK,
+                data: {
+                    transcription: response.text
+                }
+            };
         } catch (error) {
             console.error('Error in transcription:', error.response?.data || error.message);
             throw new Error('Failed to transcribe the audio file.');
         }
     }
+
+
 }
