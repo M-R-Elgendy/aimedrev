@@ -2,10 +2,11 @@ import { BadRequestException, HttpStatus, Injectable, NotFoundException, Unproce
 import { ConfigService } from '@nestjs/config';
 import { StripeService } from 'src/stripe/stripe.service';
 import { PlanService } from 'src/plan/plan.service';
-import { PrismaClient, User, Subscription, REFUND_STATUS } from '@prisma/client';
+import { PrismaClient, User, REFUND_STATUS } from '@prisma/client';
 import { AuthContext } from 'src/auth/auth.context';
 import Stripe from 'stripe';
 import * as moment from 'moment';
+import { Utlis } from 'src/global/utlis';
 import { RefundService } from 'src/refund/refund.service';
 
 @Injectable()
@@ -17,7 +18,8 @@ export class SubscriptionService {
     private readonly stripeService: StripeService,
     private readonly prisma: PrismaClient,
     private readonly refundService: RefundService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly utlis: Utlis
   ) { }
 
   async create(id: string) {
@@ -39,7 +41,7 @@ export class SubscriptionService {
       if (!plan) throw new NotFoundException('Plan not found');
       if (!user) throw new NotFoundException('User not found');
 
-      const hasActiveSubscription = this.hasActiveSubscription(user);
+      const hasActiveSubscription = this.utlis.hasActiveSubscription(user);
       if (hasActiveSubscription) {
         throw new BadRequestException('User already have a plan')
       }
@@ -267,36 +269,6 @@ export class SubscriptionService {
     }
   }
 
-  hasActiveSubscription(user: User & { Subscription: Subscription[] }) {
-
-    try {
-      if (user.Subscription.length === 0) return false;
-
-      let isQuriesExpried: boolean = false, isTimeExpired: boolean = false;
-      const lastSubscription = user.Subscription[user.Subscription.length - 1];
-
-      if (!lastSubscription.isActive) return false;
-      if (!lastSubscription.isVerified) return false;
-      if (lastSubscription.isDeleted) return false;
-
-      if (lastSubscription.totalQueries > 0) {
-        isQuriesExpried = lastSubscription.usedQuries >= lastSubscription.totalQueries;
-      }
-
-      if (lastSubscription.endDate) {
-        const lastOfToday = moment().endOf('day').toDate();
-        const lastOfSubscription = moment(lastSubscription.endDate).endOf('day').toDate();
-        isTimeExpired = lastOfSubscription <= lastOfToday;
-      }
-
-      if (lastSubscription.totalQueries > 0 && lastSubscription.endDate) return !isQuriesExpried && !isTimeExpired;
-      if (lastSubscription.endDate) return !isTimeExpired;
-      if (lastSubscription.totalQueries > 0) return !isQuriesExpried;
-    } catch (error) {
-      throw error;
-    }
-  }
-
   async handelSuccessInvoiceEvent(invoiceData: Stripe.Invoice) {
     try {
 
@@ -332,7 +304,7 @@ export class SubscriptionService {
         throw new NotFoundException('Plan not found');
       }
 
-      const hasActiveSubscription = this.hasActiveSubscription(user);
+      const hasActiveSubscription = this.utlis.hasActiveSubscription(user);
       if (hasActiveSubscription) {
 
         await this.refundInvoice(paymentIntentId as string, user);

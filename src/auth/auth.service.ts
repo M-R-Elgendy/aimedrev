@@ -19,6 +19,8 @@ import { SessionToken } from '../global/types';
 import { AuthContext } from './auth.context';
 import { StripeService } from 'src/stripe/stripe.service';
 import { ConfigService } from '@nestjs/config';
+
+import { Role } from '../global/types';
 @Injectable()
 export class AuthService {
 
@@ -89,19 +91,7 @@ export class AuthService {
           email: emailLoginDto.email,
           isDeleted: false
         },
-        select: {
-          id: true,
-          name: true,
-          countryId: true,
-          speciality: true,
-          createdAt: true,
-          email: true,
-          phone: true,
-          password: true,
-          socialProvider: true,
-          isBlocked: true,
-          role: true
-        }
+        include: { Subscription: true }
       });
 
       if (!user || user.socialProvider != null) throw new NotFoundException('User not found');
@@ -110,7 +100,8 @@ export class AuthService {
       const isPasswordMatch = await this.verifyPassword(emailLoginDto.password, user.password);
       if (!isPasswordMatch) throw new UnauthorizedException('Invalid credentials')
 
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
+      const hasActiveSubscription = this.utils.hasActiveSubscription(user)
+      const token = await this.jwtService.signAsync({ id: user.id, role: (hasActiveSubscription) ? Role.PAID_USER : user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
       return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
 
     } catch (error) {

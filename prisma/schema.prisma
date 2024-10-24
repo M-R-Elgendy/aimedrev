@@ -106,6 +106,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   File      File[]
+  Chat      Chat[]
 
   @@index([name, email, phone, paidUser])
 }
@@ -206,4 +207,30 @@ model File {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId, url])
+}
+
+enum CHAT_TYPES {
+  GENERAL
+  EVIDENCE_BASED
+  DIAGNOSTIC
+}
+
+model Chat {
+  id       String     @id @default(auto()) @map("_id") @db.ObjectId
+  type     CHAT_TYPES @default(GENERAL)
+  title    String     @default("New Chat")
+  messages Json[]     @default([])
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User   User   @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+
+  @@index([userId, id])
 }

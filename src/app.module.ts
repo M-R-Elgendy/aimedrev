@@ -25,7 +25,8 @@ import { RefundService } from './refund/refund.service';
 import { TranscriptionModule } from './transcription/transcription.module';
 import { OpenAIService } from './openai/openai.service';
 import { FileUploadModule } from './file-upload/file-upload.module';
-
+import { ChatModule } from './chat/chat.module';
+import { ChatService } from './chat/chat.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -64,6 +65,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
     RefundModule,
     TranscriptionModule,
     FileUploadModule,
+    ChatModule
   ],
   controllers: [AppController, StripeController],
   providers: [
@@ -76,7 +78,8 @@ import { FileUploadModule } from './file-upload/file-upload.module';
     AuthContext,
     Utlis,
     RefundService,
-    OpenAIService
+    OpenAIService,
+    ChatService
   ],
 
 })
