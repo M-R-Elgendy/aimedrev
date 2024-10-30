@@ -4,38 +4,40 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger, UseGuards, Inject, forwardRef } from '@nestjs/common';
+import { UseGuards, forwardRef, Inject, } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AbstractGateway } from 'src/lib/abstract.gateway';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import { WsAuthGuard } from 'src/auth/guards/ws.auth.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Roles } from '../global/decorators/role.decorator';
 import { Role } from 'src/global/types';
-
-// import { AddMessageDto } from './dto/add-message.dto';
+import { MessagesService } from './messages.service';
+import { CreateMessageDto } from './dto/create-message.dto';
 
 @UseGuards(WsAuthGuard, RoleGuard)
 @WebSocketGateway({ cors: { origin: '*' } })
 @Roles([Role.ADMIN, Role.PAID_USER])
-export class ChatGateway extends AbstractGateway {
+export class MessagesGateway extends AbstractGateway {
 
   constructor(
     protected readonly jwtService: JwtService,
     protected readonly configService: ConfigService,
-    // @Inject(forwardRef(() => MessagesService))
-    // private readonly messagesService: MessagesService,
+    @Inject(forwardRef(() => MessagesService))
+    private readonly messagesService: MessagesService,
   ) {
     super(jwtService, configService);
   }
 
-  @SubscribeMessage('chat')
+  @SubscribeMessage('message')
   handleMessage(
-    @MessageBody() payload: { author: string, body: any },
+    @MessageBody() payload: string,
     @ConnectedSocket() client: Socket
-  ): { author: string, body: any } {
-    client.emit('chat', payload);
+  ) {
+    const parsedMessage: CreateMessageDto = JSON.parse(payload);
+    const message = this.messagesService.create(parsedMessage);
+    client.emit('message', "message");
     return payload;
   }
 }

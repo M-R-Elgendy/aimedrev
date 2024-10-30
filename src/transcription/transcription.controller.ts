@@ -21,6 +21,10 @@ export class TranscriptionController {
       throw new BadRequestException('No file uploaded');
     }
 
+    const uploadDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
     const uploadPath = path.join(__dirname, `../uploads/${file.originalname}`);
     fs.writeFileSync(uploadPath, file.buffer);
 

@@ -15,9 +15,9 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { WebsocketExceptionsFilter } from '../global/filters/ws-exception.filter';
-import { CreateChatDto } from '../chat/dto/create-chat.dto';
+import { CreateMessageDto } from 'src/messages/dto/create-message.dto';
 
-export type WebSocketMessage = Partial<CreateChatDto>;
+export type WebSocketMessage = Partial<CreateMessageDto>;
 
 @WebSocketGateway()
 @UseFilters(WebsocketExceptionsFilter)
@@ -55,6 +55,7 @@ export abstract class AbstractGateway
         }
 
         try {
+
             const payload = await this.jwtService.verifyAsync(token[1], {
                 secret: this.configService.get('JWT_SECRET'),
             });
@@ -65,6 +66,7 @@ export abstract class AbstractGateway
             this.userSocketMap.get(userId).push(client.id);
             this.socketUserMap.set(client.id, userId);
         } catch (error: any) {
+            console.log(error)
             client.disconnect();
         }
     }

@@ -29,6 +29,7 @@ import { OpenAIService } from './openai/openai.service';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { ChatModule } from './chat/chat.module';
 import { ChatService } from './chat/chat.service';
+import { MessagesModule } from './messages/messages.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -73,7 +74,8 @@ import { ChatService } from './chat/chat.service';
     RefundModule,
     TranscriptionModule,
     FileUploadModule,
-    ChatModule
+    ChatModule,
+    MessagesModule
   ],
   controllers: [AppController, StripeController],
   providers: [
