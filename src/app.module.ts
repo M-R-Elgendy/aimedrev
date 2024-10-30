@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
+import * as redisStore from 'cache-manager-redis-store';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
@@ -51,6 +53,12 @@ import { ChatService } from './chat/chat.service';
         },
       }),
       inject: [ConfigService],
+    }),
+
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 1000 * 60 * 60 * 24, // Day in ms
+      max: 100
     }),
 
     UserModule,
