@@ -106,7 +106,8 @@ export class UserService {
               frequency: true,
               qeriesCount: true
             }
-          }
+          },
+          Subscription: true
         }
       });
 
@@ -118,6 +119,16 @@ export class UserService {
         data: user
       };
 
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getUserSubscriptions(id: string) {
+    try {
+      return this.prisma.subscription.findMany({
+        where: { userId: id, isDeleted: false }
+      });
     } catch (error) {
       throw error;
     }

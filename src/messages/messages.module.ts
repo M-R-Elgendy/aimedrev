@@ -1,13 +1,24 @@
 import { Module } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { MessagesController } from './messages.controller';
-import { MessagesGateway } from './messages.gateway';
 import { AuthContext } from 'src/auth/auth.context';
 import { PrismaClient } from '@prisma/client';
-import { JwtService } from '@nestjs/jwt';
 import { OpenAIService } from 'src/openai/openai.service';
+import { UserService } from 'src/user/user.service';
+import { Utlis } from 'src/global/utlis';
+import { StripeService } from 'src/stripe/stripe.service';
+import { AxiosService } from 'src/axios/axios.service';
 @Module({
   controllers: [MessagesController],
-  providers: [MessagesService, AuthContext, PrismaClient, JwtService, MessagesGateway, OpenAIService],
+  providers: [
+    MessagesService,
+    AuthContext,
+    PrismaClient,
+    OpenAIService,
+    UserService,
+    Utlis,
+    StripeService,
+    AxiosService
+  ],
 })
 export class MessagesModule { }

@@ -25,13 +25,12 @@ export class Utlis {
         return response.data;
     }
 
-    hasActiveSubscription(user: User & { Subscription: Subscription[] }) {
-
+    hasActiveSubscription(subscription: Subscription[]) {
         try {
-            if (user.Subscription.length === 0) return false;
+            if (subscription.length === 0) return false;
 
             let isQuriesExpried: boolean = false, isTimeExpired: boolean = false;
-            const lastSubscription = user.Subscription[user.Subscription.length - 1];
+            const lastSubscription = subscription[subscription.length - 1];
 
             if (!lastSubscription.isActive) return false;
             if (!lastSubscription.isVerified) return false;

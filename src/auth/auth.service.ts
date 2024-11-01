@@ -100,7 +100,7 @@ export class AuthService {
       const isPasswordMatch = await this.verifyPassword(emailLoginDto.password, user.password);
       if (!isPasswordMatch) throw new UnauthorizedException('Invalid credentials')
 
-      const hasActiveSubscription = this.utils.hasActiveSubscription(user)
+      const hasActiveSubscription = this.utils.hasActiveSubscription(user.Subscription)
       const token = await this.jwtService.signAsync({ id: user.id, role: (hasActiveSubscription) ? Role.PAID_USER : user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
       return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
 

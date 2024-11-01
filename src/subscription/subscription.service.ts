@@ -41,7 +41,7 @@ export class SubscriptionService {
       if (!plan) throw new NotFoundException('Plan not found');
       if (!user) throw new NotFoundException('User not found');
 
-      const hasActiveSubscription = this.utlis.hasActiveSubscription(user);
+      const hasActiveSubscription = this.utlis.hasActiveSubscription(user.Subscription);
       if (hasActiveSubscription) {
         throw new BadRequestException('User already have a plan')
       }
@@ -304,7 +304,7 @@ export class SubscriptionService {
         throw new NotFoundException('Plan not found');
       }
 
-      const hasActiveSubscription = this.utlis.hasActiveSubscription(user);
+      const hasActiveSubscription = this.utlis.hasActiveSubscription(user.Subscription);
       if (hasActiveSubscription) {
 
         await this.refundInvoice(paymentIntentId as string, user);

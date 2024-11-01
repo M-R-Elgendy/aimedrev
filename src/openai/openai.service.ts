@@ -36,4 +36,14 @@ export class OpenAIService {
             throw new Error('Failed to transcribe the audio file.');
         }
     }
+
+    async query(prompot: string, chatHistory) {
+        const completion = await this.openai.chat.completions.create({
+            messages: [{ role: "user", content: prompot }, chatHistory],
+            model: "gpt-4o",
+        });
+
+        return completion.choices[0].message.content;
+    }
+
 }
