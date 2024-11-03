@@ -1,9 +1,8 @@
 import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateChatDto } from './dto/create-chat.dto';
+import { CreateChatDto, } from './dto/create-chat.dto';
 import { UpdateChatDto } from './dto/update-chat.dto';
 import { AuthContext } from 'src/auth/auth.context';
 import { PrismaClient, CHAT_TYPES } from '@prisma/client';
-
 @Injectable()
 export class ChatService {
 
@@ -14,10 +13,39 @@ export class ChatService {
 
   async create(createChatDto: CreateChatDto) {
     try {
+      const userId = this.authContext.getUser().id;
+      const userName = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+
+      let welcomeMessage: string = '';
+      if (createChatDto.type === CHAT_TYPES.DIAGNOSTIC) {
+        welcomeMessage = `Hello, Dr. ${userName.name}! To provide the most accurate and helpful recommendations, please share a comprehensive clinical case summary, including:\n\n` +
+          '- **Age**\n' +
+          '- **Sex**\n' +
+          '- **Relevant past medical history**\n' +
+          '- **Current medications**\n' +
+          '- **Presenting symptoms**\n' +
+          '- **Associated symptoms**\n' +
+          '- **Descriptions of relevant studies** (e.g., lab results, imaging findings)\n' +
+          '- **Details of the illness course**\n' +
+          '- **Any additional information** you might share when consulting another physician\n\n' +
+          'The more thorough the information, the better I can assist you.';
+      } else {
+        welcomeMessage = `Hi Dr. ${userName.name}! How can I assist you?`;
+      }
+
+
       const createdChat = await this.prisma.chat.create({
         data: {
           type: createChatDto.type,
-          userId: this.authContext.getUser().id,
+          userId: userId,
+          messages: [{
+            role: 'PhysAID',
+            content: {
+              message: welcomeMessage,
+              images: [],
+              pdfs: []
+            }
+          }]
         },
       });
 
@@ -25,7 +53,8 @@ export class ChatService {
         message: "Chat created successfully",
         dats: {
           chatType: createdChat.type,
-          chatId: createdChat.id
+          chatId: createdChat.id,
+          messages: createdChat.messages
         },
         statusCode: HttpStatus.CREATED
       }

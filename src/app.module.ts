@@ -30,6 +30,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
 import { ChatModule } from './chat/chat.module';
 import { ChatService } from './chat/chat.service';
 import { MessagesModule } from './messages/messages.module';
+import { MarkdownService } from './markdown/markdown.service';
 
 @Module({
   imports: [
@@ -90,7 +91,8 @@ import { MessagesModule } from './messages/messages.module';
     Utlis,
     RefundService,
     OpenAIService,
-    ChatService
+    ChatService,
+    MarkdownService
   ],
 
 })

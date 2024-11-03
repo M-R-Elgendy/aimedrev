@@ -8,6 +8,7 @@ import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
 import { StripeService } from 'src/stripe/stripe.service';
 import { AxiosService } from 'src/axios/axios.service';
+import { MarkdownService } from 'src/markdown/markdown.service';
 @Module({
   controllers: [MessagesController],
   providers: [
@@ -18,7 +19,8 @@ import { AxiosService } from 'src/axios/axios.service';
     UserService,
     Utlis,
     StripeService,
-    AxiosService
+    AxiosService,
+    MarkdownService
   ],
 })
 export class MessagesModule { }
