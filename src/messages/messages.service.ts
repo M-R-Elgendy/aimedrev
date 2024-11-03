@@ -143,7 +143,7 @@ export class MessagesService {
     You are PhysAid, an assistant for Dr. ${doctorName}, a professional healthcare provider specialized in ${doctorSpecialty}.
     Your task is to answer clinical questions with the utmost accuracy, detail, and professionalism.
     
-    User's Query: "${query}"
+    ${doctorName} Query: "${query}"
     
     General Guidelines:
       - Maintain Professionalism: Use a tone that is professional, clear, and respectful.
