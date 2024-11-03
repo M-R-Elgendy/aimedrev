@@ -41,6 +41,8 @@ export class OpenAIService {
         const completion = await this.openai.chat.completions.create({
             messages: [{ role: "user", content: prompot }, chatHistory],
             model: "gpt-4o",
+            temperature: 0.4,
+            max_tokens: 100
         });
 
         return completion.choices[0].message.content;
