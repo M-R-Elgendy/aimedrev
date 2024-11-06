@@ -31,6 +31,7 @@ export class FileUploadService {
       Bucket: this.configService.getOrThrow<string>('AWS_BUCKET_NAME'),
       Key: this.generateFileName(file),
       Body: file.buffer,
+      ACL: 'public-read',
       ContentType: file.mimetype,
     };
     const uplodedFile = await this.s3.upload(params).promise();
