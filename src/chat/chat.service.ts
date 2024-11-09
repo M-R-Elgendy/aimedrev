@@ -64,7 +64,6 @@ export class ChatService {
   }
 
   async findAll(filter: CHAT_TYPES) {
-    console.log(filter)
     try {
       const chats = await this.prisma.chat.findMany({
         where: {
