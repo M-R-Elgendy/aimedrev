@@ -4,6 +4,7 @@ import { MessagesController } from './messages.controller';
 import { AuthContext } from 'src/auth/auth.context';
 import { PrismaClient } from '@prisma/client';
 import { OpenAIService } from 'src/openai/openai.service';
+import { OpenAIServiceV2 } from 'src/openai/openai.service-v2';
 import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
 import { StripeService } from 'src/stripe/stripe.service';
@@ -16,6 +17,7 @@ import { MarkdownService } from 'src/markdown/markdown.service';
     AuthContext,
     PrismaClient,
     OpenAIService,
+    OpenAIServiceV2,
     UserService,
     Utlis,
     StripeService,

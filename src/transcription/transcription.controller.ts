@@ -7,12 +7,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OpenAIService } from 'src/openai/openai.service';
+import { OpenAIServiceV2 } from 'src/openai/openai.service-v2';
 import * as fs from 'fs';
 import * as path from 'path';
 
 @Controller('transcribe')
 export class TranscriptionController {
-  constructor(private readonly openAIService: OpenAIService) { }
+  constructor(private readonly openAIService: OpenAIServiceV2) { }
 
   @Post()
   @UseInterceptors(FileInterceptor('file'))

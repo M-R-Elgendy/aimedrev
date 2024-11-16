@@ -53,4 +53,10 @@ export class Utlis {
             throw error;
         }
     }
+
+    extractUrls(text: string) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urls = text.match(urlRegex);
+        return urls || [];
+    }
 }
