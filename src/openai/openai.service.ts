@@ -1,23 +1,42 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { ChatOpenAI } from "@langchain/openai";
 import * as fs from 'fs';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
 
 @Injectable()
 export class OpenAIService {
+
+    private llm: ChatOpenAI;
     private openai: OpenAI;
 
     constructor(
         private readonly configService: ConfigService
     ) {
+        this.llm = new ChatOpenAI({
+            model: "gpt-4o-2024-08-06",
+            temperature: 0
+        });
+
         this.openai = new OpenAI({
             apiKey: this.configService.getOrThrow('OPENAI_API_KEY'),
         });
     }
 
+    getChatModel() {
+        return this.llm;
+    }
+
+    async testService() {
+        console.log('start')
+        const response = await this.llm.invoke("Hello, world!");
+        console.log(response)
+        return response;
+    }
+
     async transcribeAudio(filePath: string) {
         try {
+            console.log('From service v-2')
             const fileStream = fs.createReadStream(filePath);
             const response = await this.openai.audio.transcriptions.create({
                 file: fileStream as any,
@@ -38,12 +57,11 @@ export class OpenAIService {
         }
     }
 
-    async query(prompot: string, chatHistory) {
+    async query(prompot: string, chatHistory: any) {
         const completion = await this.openai.chat.completions.create({
             messages: [{ role: "user", content: prompot }, chatHistory],
             model: "gpt-4o",
-            temperature: 0.4,
-            max_tokens: 100
+            temperature: 0
         });
 
         return completion.choices[0].message.content;

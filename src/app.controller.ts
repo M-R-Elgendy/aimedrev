@@ -5,8 +5,8 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) { }
 
-  @Get('getSession/:id')
-  getSession(@Param('id') id: string) {
-    return this.appService.getSession(id);
+  @Get()
+  getSession() {
+    return this.appService.healthCheck();
   }
 }

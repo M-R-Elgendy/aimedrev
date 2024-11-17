@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { OpenAIService } from 'src/openai/openai.service';
-import { OpenAIServiceV2 } from 'src/openai/openai.service-v2';
 
 import { Chat, PrismaClient } from '@prisma/client';
 import { AuthContext } from 'src/auth/auth.context';
@@ -37,7 +36,6 @@ export class MessagesService {
     private readonly prisma: PrismaClient,
     private readonly authContext: AuthContext,
     private readonly openaiService: OpenAIService,
-    private readonly openaiServiceV2: OpenAIServiceV2,
     private readonly userService: UserService,
     private readonly utlis: Utlis,
     private readonly markdownService: MarkdownService
@@ -357,8 +355,10 @@ export class MessagesService {
     });
 
     if (!chat) throw new UnauthorizedException('Chat not found');
+
     const userSubscriptions = await this.userService.getUserSubscriptions(userId);
     const hasActiveSubscription = this.utlis.hasActiveSubscription(userSubscriptions);
+
     if (!hasActiveSubscription) throw new UnauthorizedException('You have no active subscription');
 
     const subscription = userSubscriptions[userSubscriptions.length - 1]?.id;
@@ -409,7 +409,7 @@ export class MessagesService {
     const memoryHistory = new InMemoryChatMessageHistory(deserializedHistory);
 
     const chatMemory = new ConversationSummaryBufferMemory({
-      llm: this.openaiServiceV2.getChatModel(),
+      llm: this.openaiService.getChatModel(),
       maxTokenLimit: 10000,
       aiPrefix: "PhysAid",
       humanPrefix: "Doctor",
@@ -430,7 +430,7 @@ export class MessagesService {
     humanMessagePromptTemplate: string[]
   ): Promise<{ htmlResponse: string }> {
     const agent = await createOpenAIToolsAgent({
-      llm: this.openaiServiceV2.getChatModel(),
+      llm: this.openaiService.getChatModel(),
       tools,
       prompt,
     });

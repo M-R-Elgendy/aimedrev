@@ -26,7 +26,6 @@ import { RefundModule } from './refund/refund.module';
 import { RefundService } from './refund/refund.service';
 import { TranscriptionModule } from './transcription/transcription.module';
 import { OpenAIService } from './openai/openai.service';
-import { OpenAIServiceV2 } from './openai/openai.service-v2';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { ChatModule } from './chat/chat.module';
 import { ChatService } from './chat/chat.service';
@@ -92,7 +91,6 @@ import { MarkdownService } from './markdown/markdown.service';
     Utlis,
     RefundService,
     OpenAIService,
-    OpenAIServiceV2,
     ChatService,
     MarkdownService
   ],
