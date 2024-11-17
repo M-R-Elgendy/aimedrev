@@ -38,7 +38,7 @@ export class OpenAIService {
         }
     }
 
-    async query(prompot: ChatPromptTemplate<any, any>, chatHistory) {
+    async query(prompot: string, chatHistory) {
         const completion = await this.openai.chat.completions.create({
             messages: [{ role: "user", content: prompot }, chatHistory],
             model: "gpt-4o",

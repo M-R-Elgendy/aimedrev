@@ -12,15 +12,45 @@ import { Role } from 'src/global/types';
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) { }
 
-  @Post()
+  @Post('/general')
   @Roles([Role.ADMIN, Role.PAID_USER])
-  async create(@Body() createMessageDto: CreateMessageDto) {
+  async createGeneralMessage(@Body() createMessageDto: CreateMessageDto) {
 
     // res.setHeader('Content-Type', 'text/event-stream');
     // res.setHeader('Cache-Control', 'no-cache');
     // res.setHeader('Connection', 'keep-alive');
 
-    const response = await this.messagesService.create(createMessageDto);
+    const response = await this.messagesService.createGeneralMessage(createMessageDto);
+    return response;
+
+    // res.write(`${JSON.stringify(response)}`);
+    // res.end();
+  }
+
+  @Post('/diagnostic')
+  @Roles([Role.ADMIN, Role.PAID_USER])
+  async createDiagnosticMessage(@Body() createMessageDto: CreateMessageDto) {
+
+    // res.setHeader('Content-Type', 'text/event-stream');
+    // res.setHeader('Cache-Control', 'no-cache');
+    // res.setHeader('Connection', 'keep-alive');
+
+    const response = await this.messagesService.createDiagnosticMessage(createMessageDto);
+    return response;
+
+    // res.write(`${JSON.stringify(response)}`);
+    // res.end();
+  }
+
+  @Post('/evidence')
+  @Roles([Role.ADMIN, Role.PAID_USER])
+  async createEvidenceMessage(@Body() createMessageDto: CreateMessageDto) {
+
+    // res.setHeader('Content-Type', 'text/event-stream');
+    // res.setHeader('Cache-Control', 'no-cache');
+    // res.setHeader('Connection', 'keep-alive');
+
+    const response = await this.messagesService.createEvidenceMessage(createMessageDto);
     return response;
 
     // res.write(`${JSON.stringify(response)}`);
