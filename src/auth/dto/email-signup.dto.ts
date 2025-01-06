@@ -20,6 +20,6 @@ export class EmailSignUpDto {
     email: string;
 
     @IsString()
-    @IsStrongPassword({ minLength: 8, minNumbers: 1 })
+    @IsStrongPassword({ minLength: 8, minNumbers: 1, minSymbols: 0, minUppercase: 0, minLowercase: 0 })
     password: string;
 }
