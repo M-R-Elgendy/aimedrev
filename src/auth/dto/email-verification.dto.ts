@@ -11,7 +11,7 @@ export class EmailVerificationDto {
 
     @IsNumber()
     @IsNumberLength(+process.env.VERIFICATION_CODE_LENGTH || 6, { message: `OTP must be a ${+process.env.VERIFICATION_CODE_LENGTH || 6}-digit number` })
-    code: number;
+    code: string;
 }
 
 export class SendOTPDto {

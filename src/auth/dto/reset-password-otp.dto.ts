@@ -11,7 +11,7 @@ export class OTPPasswordResetDto {
 
     @IsNumber()
     @IsNumberLength(6, { message: 'OTP must be 6 digits' })
-    otp: number;
+    otp: string;
 
     @IsString()
     @IsStrongPassword({ minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 })

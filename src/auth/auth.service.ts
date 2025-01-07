@@ -299,7 +299,8 @@ export class AuthService {
 
       await this.sendEmail(user.email, 'Reset your password', `Your reset code is ${code}`);
 
-      return { message: 'Reset code sent successfully', statusCode: HttpStatus.OK };
+      const token = this.utils.generateToken(25);
+      return { message: 'Reset code sent successfully', token, statusCode: HttpStatus.OK };
 
     } catch (error) {
       throw error;

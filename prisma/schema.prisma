@@ -85,7 +85,7 @@ model User {
   emailVerified    Boolean    @default(false)
   phoneVerified    Boolean    @default(false)
   autoRenewal      Boolean    @default(false)
-  code             Int?
+  code             String?
   socialProvider   String?
   isBlocked        Boolean?   @default(false)
   isDeleted        Boolean?   @default(false)

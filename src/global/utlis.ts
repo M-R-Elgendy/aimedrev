@@ -3,6 +3,8 @@ import { AxiosService } from "src/axios/axios.service";
 import { ConfigService } from "@nestjs/config";
 import * as moment from 'moment';
 import { Subscription, User } from "@prisma/client";
+import { randomBytes } from 'crypto';
+
 @Injectable()
 export class Utlis {
 
@@ -11,13 +13,18 @@ export class Utlis {
         private readonly configService: ConfigService
     ) { }
 
-    generateRandomNumber(length: number): number {
+    generateRandomNumber(length: number): string {
         const digits = '0123456789';
         let OTP = '';
         for (let i = 0; i < length; i++) {
             OTP += digits[Math.floor(Math.random() * 10)];
         }
-        return +OTP;
+        return OTP;
+    }
+
+
+    generateToken(length: number = 16): string {
+        return randomBytes(length).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
     }
 
     async getCountryCodeFromIP(IP: string): Promise<{ country_code: string }> {
