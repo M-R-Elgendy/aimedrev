@@ -37,21 +37,21 @@ export class PlanController {
 
   @Delete(':id')
   @UseGuards(AuthGuard, RoleGuard)
-  @Roles([Role.ADMIN])
+  // @Roles([Role.ADMIN])
   remove(@Param() params: ObjectIdDto) {
     return this.planService.remove(params.id);
   }
 
   @Put(':id/activate')
   @UseGuards(AuthGuard, RoleGuard)
-  @Roles([Role.ADMIN])
+  // @Roles([Role.ADMIN])
   activate(@Param() params: ObjectIdDto) {
     return this.planService.planAcivity(params.id, true);
   }
 
   @Put(':id/deactivate')
   @UseGuards(AuthGuard, RoleGuard)
-  @Roles([Role.ADMIN])
+  // @Roles([Role.ADMIN])
   deactivate(@Param() params: ObjectIdDto) {
     return this.planService.planAcivity(params.id, false);
   }

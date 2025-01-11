@@ -45,6 +45,7 @@ model Plan {
   globalPrice     Float
   egPrice         Float
   frequency       FREQUENCY
+  features        String[]
   qeriesCount     Int           @default(0)
   isActive        Boolean       @default(true)
   isDeleted       Boolean       @default(false)
@@ -79,6 +80,7 @@ model User {
   password         String?
   phone            String?
   speciality       String?
+  companyName      String?
   paidUser         Boolean    @default(false)
   activeUntil      DateTime?
   role             USER_TYPES @default(user)

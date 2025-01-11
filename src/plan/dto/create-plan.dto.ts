@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsNumber, IsString, Length } from "class-validator";
+import { IsArray, IsBoolean, IsEnum, IsNumber, IsString, Length } from "class-validator";
 
 export enum FREQUENCY {
     monthly = 'monthly',
@@ -31,4 +31,8 @@ export class CreatePlanDto {
 
     @IsBoolean()
     isActive: boolean
+
+    @IsArray()
+    @IsString({ each: true })
+    features: string[]
 }

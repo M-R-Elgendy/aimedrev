@@ -41,4 +41,9 @@ export class CreateUserDto {
     @IsOptional()
     @IsBoolean()
     autoRenewal: boolean;
+
+    @IsOptional()
+    @IsString()
+    @IsNotEmpty()
+    companyName: string | null;
 }
