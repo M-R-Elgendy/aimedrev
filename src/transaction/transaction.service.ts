@@ -2,11 +2,15 @@ import { Injectable, HttpStatus, NotFoundException } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { PrismaClient } from '@prisma/client';
+import { AuthContext } from 'src/auth/auth.context';
 
 @Injectable()
 export class TransactionService {
 
-  constructor(private readonly prismaClient: PrismaClient) { }
+  constructor(
+    private readonly prismaClient: PrismaClient,
+    private readonly authContext: AuthContext
+  ) { }
 
   async create(createTransactionDto: CreateTransactionDto) {
     try {
@@ -17,16 +21,24 @@ export class TransactionService {
     }
   }
 
-  async findAll() {
+  async findAll(userRequest = false) {
     try {
+
+      const userId = this.authContext.getUser().id;
+
+      const query = { isDeleted: false };
+      if (userRequest) query['userId'] = userId
+
+
       const data = await this.prismaClient.transaction.findMany({
-        where: { isDeleted: false },
+        where: { ...query },
         select: {
           id: true,
           paymentMethod: true,
           tran_ref: true,
           amount: true,
           currency: true,
+          createdAt: true,
           user: {
             select: {
               id: true,
@@ -72,10 +84,15 @@ export class TransactionService {
     }
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userRequest = false) {
     try {
+      const userId = this.authContext.getUser().id;
+
+      const query = { id: id, isDeleted: false };
+      if (userRequest) query['userId'] = userId
+
       const data = await this.prismaClient.transaction.findUnique({
-        where: { id: id, isDeleted: false },
+        where: { ...query },
         select: {
           id: true,
           paymentMethod: true,

@@ -17,10 +17,27 @@ export class TransactionController {
     return this.transactionService.findAll();
   }
 
+  @Get('/me')
+  @UseGuards(AuthGuard, RoleGuard)
+  @Roles([Role.USER])
+  async findMine() {
+    return this.transactionService.findAll(true);
+  }
+
+  @Get('/me/:id')
+  @UseGuards(AuthGuard, RoleGuard)
+  @Roles([Role.USER])
+  async findMineSingle(@Param() params: ObjectIdDto) {
+    return this.transactionService.findOne(params.id, true);
+  }
+
   @Get(':id')
   @UseGuards(AuthGuard, RoleGuard)
   @Roles([Role.ADMIN])
   async findOne(@Param() params: ObjectIdDto) {
     return this.transactionService.findOne(params.id);
   }
+
+
+
 }
