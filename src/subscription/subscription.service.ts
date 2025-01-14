@@ -8,6 +8,8 @@ import Stripe from 'stripe';
 import * as moment from 'moment';
 import { Utlis } from 'src/global/utlis';
 import { RefundService } from 'src/refund/refund.service';
+import { AuthService } from 'src/auth/auth.service';
+import { Role } from 'src/global/types';
 @Injectable()
 export class SubscriptionService {
 
@@ -18,7 +20,8 @@ export class SubscriptionService {
     private readonly prisma: PrismaClient,
     private readonly refundService: RefundService,
     private readonly configService: ConfigService,
-    private readonly utlis: Utlis
+    private readonly utlis: Utlis,
+    private readonly authService: AuthService
   ) { }
 
   async create(id: string) {
@@ -261,7 +264,10 @@ export class SubscriptionService {
 
           }
         });
-        return updatedSubscription
+
+        const userRole = (subscription.user.role == Role.ADMIN) ? Role.ADMIN : Role.PAID_USER;
+        const token = await this.authService.signToken(subscription.user.id, userRole)
+        return { updatedSubscription, token }
       }
     } catch (error) {
       throw error;

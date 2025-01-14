@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus, ConflictException, NotFoundException, ForbiddenException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compareSync, hashSync } from 'bcrypt';
-import { PrismaClient, User } from '@prisma/client'
+import { PrismaClient, User, USER_TYPES } from '@prisma/client'
 import { AxiosService } from '../axios/axios.service';
 import { MailerService } from '@nestjs-modules/mailer';
 
@@ -71,7 +71,7 @@ export class AuthService {
 
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
+      const token = await this.signToken(user.id, user.role);
 
       return {
         message: 'User created successfully',
@@ -85,7 +85,7 @@ export class AuthService {
     }
   }
 
-  async logIn(emailLoginDto: EmailLogInDto, softLogin = false) {
+  async logIn(emailLoginDto: EmailLogInDto) {
 
     try {
       const user = await this.prisma.user.findFirst({
@@ -96,19 +96,17 @@ export class AuthService {
         include: { Subscription: true }
       });
 
-      if (softLogin) {
-        const token = await this.jwtService.signAsync({ id: user.id, role: Role.PAID_USER }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
-        return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
-      }
-
       if (!user || user.socialProvider != null) throw new NotFoundException('User not found');
       if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
 
       const isPasswordMatch = await this.verifyPassword(emailLoginDto.password, user.password);
       if (!isPasswordMatch) throw new UnauthorizedException('Invalid credentials')
 
-      const hasActiveSubscription = this.utils.hasActiveSubscription(user.Subscription)
-      const token = await this.jwtService.signAsync({ id: user.id, role: (hasActiveSubscription) ? Role.PAID_USER : user.role }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
+      const hasActiveSubscription = this.utils.hasActiveSubscription(user.Subscription);
+
+      const userRole = (hasActiveSubscription && user.role != Role.ADMIN) ? Role.PAID_USER : user.role;
+      const token = await this.signToken(user.id, userRole)
+
       return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
 
     } catch (error) {
@@ -137,10 +135,6 @@ export class AuthService {
         },
         select: {
           id: true,
-          name: true,
-          countryId: true,
-          speciality: true,
-          createdAt: true,
           email: true,
           phone: true,
           socialProvider: true,
@@ -151,10 +145,25 @@ export class AuthService {
 
       if (user && user?.socialProvider != 'google') throw new ConflictException('User already exists please try to reset your password')
 
+      let token: string;
       if (user) {
 
-        await this.updateGoogleData(googleUser.data.email, googleUser.data);
         if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact us');
+
+        const cureentUser = await this.prisma.user.findFirst({
+          where: {
+            email: user.email,
+            isDeleted: false
+          },
+          include: { Subscription: true }
+        });
+
+        const hasActiveSubscription = this.utils.hasActiveSubscription(cureentUser.Subscription);
+
+        const userRole = (hasActiveSubscription && user.role != Role.ADMIN) ? Role.PAID_USER : user.role;
+        token = await this.signToken(user.id, userRole);
+
+        this.updateGoogleData(googleUser.data.email, googleUser.data);
 
       } else {
         const userData = await this.prisma.googleData.create({ data: googleUser.data });
@@ -173,9 +182,9 @@ export class AuthService {
           where: { id: user.id },
           data: { stripeCustomerId: stripeCustomerId }
         });
+        token = await this.signToken(user.id, user.role);
       }
 
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
 
       return { message: 'User created successfully', statusCode: HttpStatus.CREATED, token };
 
@@ -440,8 +449,10 @@ export class AuthService {
         socialProvider: user.socialProvider,
       }
     });
-
-    console.log(customer)
     return customer.id;
+  }
+
+  async signToken(userId: string, role: Role | USER_TYPES) {
+    return await this.jwtService.signAsync({ id: userId, role: role }, { expiresIn: '10d', secret: this.configService.getOrThrow('JWT_SECRET') });
   }
 }

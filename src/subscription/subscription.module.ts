@@ -9,8 +9,11 @@ import { Utlis } from 'src/global/utlis';
 import { AxiosService } from 'src/axios/axios.service';
 import { RefundService } from 'src/refund/refund.service';
 import { UserService } from 'src/user/user.service';
-
+import { AuthModule } from 'src/auth/auth.module';
+import { AuthService } from 'src/auth/auth.service';
+import { JwtModule } from '@nestjs/jwt';
 @Module({
+  imports: [AuthModule, JwtModule],
   controllers: [SubscriptionController],
   providers: [
     SubscriptionService,
@@ -21,7 +24,8 @@ import { UserService } from 'src/user/user.service';
     Utlis,
     AxiosService,
     RefundService,
-    UserService
+    UserService,
+    AuthService
   ],
 })
 export class SubscriptionModule { }

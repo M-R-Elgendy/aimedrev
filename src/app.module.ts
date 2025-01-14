@@ -31,7 +31,9 @@ import { ChatModule } from './chat/chat.module';
 import { ChatService } from './chat/chat.service';
 import { MessagesModule } from './messages/messages.module';
 import { MarkdownService } from './markdown/markdown.service';
-
+import { AuthService } from './auth/auth.service';
+import { UserService } from './user/user.service';
+import { JwtService } from '@nestjs/jwt';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -92,7 +94,10 @@ import { MarkdownService } from './markdown/markdown.service';
     RefundService,
     OpenAIService,
     ChatService,
-    MarkdownService
+    MarkdownService,
+    AuthService,
+    UserService,
+    JwtService
   ],
 
 })
