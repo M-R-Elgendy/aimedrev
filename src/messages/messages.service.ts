@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { OpenAIService } from 'src/openai/openai.service';
 
@@ -75,7 +75,7 @@ export class MessagesService {
 
     } catch (e) {
       console.log(e);
-      throw new Error('An error occurred while processing the message.');
+      throw e;
     }
   }
 
@@ -100,9 +100,9 @@ export class MessagesService {
         code: 200
       }
 
-    } catch (error) {
-      console.log(error);
-      throw new Error('An error occurred while processing the message.');
+    } catch (e) {
+      console.log(e);
+      throw e;
     }
   }
 
@@ -142,9 +142,9 @@ export class MessagesService {
         code: 200
       }
 
-    } catch (error) {
-      console.log(error);
-      throw new Error('An error occurred while processing the message.');
+    } catch (e) {
+      console.log(e);
+      throw e;
     }
 
   }
@@ -343,17 +343,17 @@ export class MessagesService {
       }
     });
 
-    if (!chat) throw new UnauthorizedException('Chat not found');
+    if (!chat) throw new BadRequestException('Chat not found');
 
     const userSubscriptions = await this.userService.getUserSubscriptions(userId);
     const hasActiveSubscription = this.utlis.hasActiveSubscription(userSubscriptions);
 
-    if (!hasActiveSubscription) throw new UnauthorizedException('You have no active subscription');
+    if (!hasActiveSubscription) throw new BadRequestException('You have no active subscription');
 
     const subscription = userSubscriptions[userSubscriptions.length - 1]?.id;
 
     if (chatType != CHAT_TYPES.GENERAL) {
-      throw new UnauthorizedException('This chat is not a general chat');
+      throw new BadRequestException('This chat is not a general chat');
     }
 
     return { chat, subscription };

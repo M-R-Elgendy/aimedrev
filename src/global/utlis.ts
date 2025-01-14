@@ -10,7 +10,7 @@ export class Utlis {
 
     constructor(
         private readonly axiosService: AxiosService,
-        private readonly configService: ConfigService
+        private readonly configService: ConfigService,
     ) { }
 
     generateRandomNumber(length: number): string {

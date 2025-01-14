@@ -24,6 +24,8 @@ import { Role } from '../global/types';
 @Injectable()
 export class AuthService {
 
+  private readonly tokenLife = 10;
+
   constructor(
     private readonly mailService: MailerService,
     private readonly authContext: AuthContext,
@@ -69,7 +71,7 @@ export class AuthService {
 
 
       await this.sendEmail(user.email, 'Verify your email', `Your verification code is ${user.code}`);
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
 
       return {
         message: 'User created successfully',
@@ -83,7 +85,7 @@ export class AuthService {
     }
   }
 
-  async logIn(emailLoginDto: EmailLogInDto) {
+  async logIn(emailLoginDto: EmailLogInDto, softLogin = false) {
 
     try {
       const user = await this.prisma.user.findFirst({
@@ -94,6 +96,11 @@ export class AuthService {
         include: { Subscription: true }
       });
 
+      if (softLogin) {
+        const token = await this.jwtService.signAsync({ id: user.id, role: Role.PAID_USER }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
+        return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
+      }
+
       if (!user || user.socialProvider != null) throw new NotFoundException('User not found');
       if (user.isBlocked) throw new ForbiddenException('User is blocked, please contact support team')
 
@@ -101,7 +108,7 @@ export class AuthService {
       if (!isPasswordMatch) throw new UnauthorizedException('Invalid credentials')
 
       const hasActiveSubscription = this.utils.hasActiveSubscription(user.Subscription)
-      const token = await this.jwtService.signAsync({ id: user.id, role: (hasActiveSubscription) ? Role.PAID_USER : user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
+      const token = await this.jwtService.signAsync({ id: user.id, role: (hasActiveSubscription) ? Role.PAID_USER : user.role }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
       return { message: 'User logged in successfully', statusCode: HttpStatus.OK, token };
 
     } catch (error) {
@@ -168,7 +175,7 @@ export class AuthService {
         });
       }
 
-      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: '30d', secret: this.configService.getOrThrow('JWT_SECRET') });
+      const token = await this.jwtService.signAsync({ id: user.id, role: user.role }, { expiresIn: `${this.tokenLife}d`, secret: this.configService.getOrThrow('JWT_SECRET') });
 
       return { message: 'User created successfully', statusCode: HttpStatus.CREATED, token };
 
