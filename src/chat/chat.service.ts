@@ -75,7 +75,7 @@ export class ChatService {
           id: true,
           type: true,
           title: true,
-          messages: true,
+          messages: false,
         }
       });
 
