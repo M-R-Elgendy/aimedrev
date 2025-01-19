@@ -57,11 +57,11 @@ export class StripeController {
     return { message: 'Subscription renewd successfully' };
   }
 
-  @Get('users/:id/cards')
+  @Get('users/cards')
   @UseGuards(AuthGuard, RoleGuard)
   @Roles([Role.USER, Role.PAID_USER])
-  async getCards(@Req() req: Request) {
-    const cards = await this.stripeService.getPaymentMethods(req.params.id);
+  async getCards() {
+    const cards = await this.stripeService.getPaymentMethods();
     return cards;
   }
 

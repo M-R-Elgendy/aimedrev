@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import Stripe from 'stripe';
+import { AuthContext } from 'src/auth/auth.context';
 // import { UserService } from 'src/user/user.service';
 @Injectable()
 export class StripeService {
@@ -9,7 +10,7 @@ export class StripeService {
     constructor(
         private readonly prisma: PrismaClient,
         private readonly configService: ConfigService,
-        // private readonly userService: UserService
+        private readonly authContext: AuthContext
     ) { }
 
     private readonly stripe = new Stripe(this.configService.getOrThrow('STRIPE_API_TEST_KEY_PRIVATE'));
@@ -158,7 +159,8 @@ export class StripeService {
         return refund;
     }
 
-    async getPaymentMethods(userId: string) {
+    async getPaymentMethods() {
+        const userId = this.authContext.getUser().id;
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user)
             throw new BadRequestException('Invalid user Id');
