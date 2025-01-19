@@ -2,12 +2,14 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import Stripe from 'stripe';
+// import { UserService } from 'src/user/user.service';
 @Injectable()
 export class StripeService {
 
     constructor(
         private readonly prisma: PrismaClient,
-        private readonly configService: ConfigService
+        private readonly configService: ConfigService,
+        // private readonly userService: UserService
     ) { }
 
     private readonly stripe = new Stripe(this.configService.getOrThrow('STRIPE_API_TEST_KEY_PRIVATE'));
@@ -155,4 +157,31 @@ export class StripeService {
         });
         return refund;
     }
+
+    async getPaymentMethods(userId: string) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new BadRequestException('Invalid user Id');
+
+        const cards = await this.stripe.paymentMethods.list({
+            customer: user.stripeCustomerId,
+            type: 'card'
+        });
+
+        return {
+            statusCode: 200,
+            message: "Cards retrieved successfully",
+            data: cards.data
+        };
+    }
+
+    // async createPaymentMethod(userId: string) {
+    //     const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    //     if (!user)
+    //         throw new BadRequestException('Invalid user Id');
+
+
+    //     const card = await this.stripe.customers.createSource(user.stripeCustomerId, { source: 'tok_visa' });
+    //     return card;
+    // }
 }

@@ -94,6 +94,7 @@ model User {
   Plan             Plan?      @relation(fields: [planId], references: [id])
   planId           String?    @db.ObjectId
   stripeCustomerId String?
+  paymentMethodIds String[]
 
   Country   Country? @relation(fields: [countryId], references: [id])
   countryId String?  @db.ObjectId

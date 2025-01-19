@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, UseGuards, Req, Get } from '@nestjs/common';
 import { Request } from 'express';
 import { StripeService } from './stripe.service';
 import { SubscriptionService } from 'src/subscription/subscription.service';
@@ -17,7 +17,7 @@ export class StripeController {
 
   @Post('create-webhook')
   @UseGuards(AuthGuard, RoleGuard)
-  // @Roles([Role.ADMIN])
+  @Roles([Role.ADMIN])
   async createWebHookEndpoint() {
     const webhookEndpoint = await this.stripeService.createWebHookEndpoint();
     return webhookEndpoint;
@@ -56,4 +56,20 @@ export class StripeController {
 
     return { message: 'Subscription renewd successfully' };
   }
+
+  @Get('users/:id/cards')
+  @UseGuards(AuthGuard, RoleGuard)
+  @Roles([Role.USER, Role.PAID_USER])
+  async getCards(@Req() req: Request) {
+    const cards = await this.stripeService.getPaymentMethods(req.params.id);
+    return cards;
+  }
+
+  // @Post('users/:id/cards')
+  // @UseGuards(AuthGuard, RoleGuard)
+  // @Roles([Role.USER, Role.PAID_USER])
+  // async createCard(@Req() req: Request) {
+  //   const card = await this.stripeService.createPaymentMethod(req.params.id);
+  //   return card;
+  // }
 }
