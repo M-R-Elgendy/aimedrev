@@ -14,47 +14,37 @@ export class MessagesController {
 
   @Post('/general')
   @Roles([Role.ADMIN, Role.PAID_USER])
-  async createGeneralMessage(@Body() createMessageDto: CreateMessageDto) {
+  async createGeneralMessage(@Body() createMessageDto: CreateMessageDto, @Res() res: Response) {
 
-    // res.setHeader('Content-Type', 'text/event-stream');
-    // res.setHeader('Cache-Control', 'no-cache');
-    // res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Content-Type', 'text/plain;charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
 
-    const response = await this.messagesService.createGeneralMessage(createMessageDto);
-    return response;
-
-    // res.write(`${JSON.stringify(response)}`);
-    // res.end();
+    /* const response = await */ this.messagesService.createGeneralMessage(createMessageDto, res);
+    // return response;
   }
 
   @Post('/diagnostic')
   @Roles([Role.ADMIN, Role.PAID_USER])
-  async createDiagnosticMessage(@Body() createMessageDto: CreateMessageDto) {
+  async createDiagnosticMessage(@Body() createMessageDto: CreateMessageDto, @Res() res: Response) {
 
-    // res.setHeader('Content-Type', 'text/event-stream');
-    // res.setHeader('Cache-Control', 'no-cache');
-    // res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Content-Type', 'text/plain;charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
 
-    const response = await this.messagesService.createDiagnosticMessage(createMessageDto);
-    return response;
+    /* const response = await */ this.messagesService.createDiagnosticMessage(createMessageDto, res);
+    // return response;
 
-    // res.write(`${JSON.stringify(response)}`);
-    // res.end();
   }
 
   @Post('/evidence')
   @Roles([Role.ADMIN, Role.PAID_USER])
-  async createEvidenceMessage(@Body() createMessageDto: CreateMessageDto) {
+  async createEvidenceMessage(@Body() createMessageDto: CreateMessageDto, @Res() res: Response) {
 
-    // res.setHeader('Content-Type', 'text/event-stream');
-    // res.setHeader('Cache-Control', 'no-cache');
-    // res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Content-Type', 'text/plain;charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
 
-    const response = await this.messagesService.createEvidenceMessage(createMessageDto);
-    return response;
+    /* const response = await */ this.messagesService.createEvidenceMessage(createMessageDto, res);
+    // return response;
 
-    // res.write(`${JSON.stringify(response)}`);
-    // res.end();
   }
 
 }

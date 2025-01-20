@@ -27,6 +27,7 @@ import { AgentExecutor, createOpenAIToolsAgent } from "langchain/agents";
 import { loadPyodide } from "pyodide";
 import { ExaSearchResults } from '@langchain/exa';
 import Exa from 'exa-js';
+import { Response } from 'express';
 
 @Injectable()
 export class MessagesService {
@@ -41,7 +42,7 @@ export class MessagesService {
     private readonly markdownService: MarkdownService
   ) { }
 
-  async createGeneralMessage(createMessageDto: CreateMessageDto) {
+  async createGeneralMessage(createMessageDto: CreateMessageDto, res: Response) {
 
     try {
 
@@ -63,13 +64,13 @@ export class MessagesService {
       const { systemMessagePromptTemplate, humanMessagePromptTemplate } = this.generateGeneralChatPrompt(chat.User.name, chat.User.speciality, createMessageDto);
       const prompt: ChatPromptTemplate<any, any> = this.getLLMPrompt(systemMessagePromptTemplate, humanMessagePromptTemplate);
 
-      const htmlResponse = await this.getLLMResponse(chatMemory, tools, prompt, humanMessagePromptTemplate);
-      const { chatTitle } = await this.finalizeChat(subscription, chat, createMessageDto, htmlResponse.htmlResponse);
+      const { response } = await this.getLLMResponse(chatMemory, tools, prompt, humanMessagePromptTemplate, res);
+      const chatTitle = await this.finalizeChat(subscription, chat, createMessageDto, response);
 
       return {
         chatId: chat.id,
         chatTitle: chatTitle,
-        response: htmlResponse,
+        response: response,
         code: 200
       }
 
@@ -79,7 +80,7 @@ export class MessagesService {
     }
   }
 
-  async createDiagnosticMessage(createMessageDto: CreateMessageDto) {
+  async createDiagnosticMessage(createMessageDto: CreateMessageDto, res: Response) {
 
     try {
 
@@ -90,13 +91,13 @@ export class MessagesService {
       const { systemMessagePromptTemplate, humanMessagePromptTemplate } = this.generateDiagnosticChatprompt(chat.User.name, chat.User.speciality, createMessageDto);
       const prompt: ChatPromptTemplate<any, any> = this.getLLMPrompt(systemMessagePromptTemplate, humanMessagePromptTemplate);
 
-      const htmlResponse = await this.getLLMResponse(chatMemory, tools, prompt, humanMessagePromptTemplate);
-      const { chatTitle } = await this.finalizeChat(subscription, chat, createMessageDto, htmlResponse.htmlResponse);
+      const { response } = await this.getLLMResponse(chatMemory, tools, prompt, humanMessagePromptTemplate, res);
+      const { chatTitle } = await this.finalizeChat(subscription, chat, createMessageDto, response);
 
       return {
         chatId: chat.id,
         chatTitle: chatTitle,
-        response: htmlResponse,
+        response: response,
         code: 200
       }
 
@@ -106,7 +107,7 @@ export class MessagesService {
     }
   }
 
-  async createEvidenceMessage(createMessageDto: CreateMessageDto) {
+  async createEvidenceMessage(createMessageDto: CreateMessageDto, res: Response) {
 
     try {
 
@@ -132,13 +133,13 @@ export class MessagesService {
       const { systemMessagePromptTemplate, humanMessagePromptTemplate } = this.generateEvidenceChatprompt(chat.User.name, chat.User.speciality, createMessageDto);
       const prompt: ChatPromptTemplate<any, any> = this.getLLMPrompt(systemMessagePromptTemplate, humanMessagePromptTemplate);
 
-      const htmlResponse = await this.getLLMResponse(chatMemory, tools, prompt, humanMessagePromptTemplate);
-      const { chatTitle } = await this.finalizeChat(subscription, chat, createMessageDto, htmlResponse.htmlResponse);
+      const { response } = await this.getLLMResponse(chatMemory, tools, prompt, humanMessagePromptTemplate, res);
+      const { chatTitle } = await this.finalizeChat(subscription, chat, createMessageDto, response);
 
       return {
         chatId: chat.id,
         chatTitle: chatTitle,
-        response: htmlResponse,
+        response: response,
         code: 200
       }
 
@@ -416,8 +417,9 @@ export class MessagesService {
     chatMemory: ConversationSummaryBufferMemory,
     tools: any[],
     prompt: ChatPromptTemplate<any, any>,
-    humanMessagePromptTemplate: string[]
-  ): Promise<{ htmlResponse: string }> {
+    humanMessagePromptTemplate: string[],
+    res: Response
+  ): Promise<{ response: string }> {
     const agent = await createOpenAIToolsAgent({
       llm: this.openaiService.getChatModel(),
       tools,
@@ -434,12 +436,17 @@ export class MessagesService {
     await agentExecutor.invoke(
       { input: humanMessagePromptTemplate },
       {
-        callbacks: [{ handleLLMNewToken(token) { response += token } }],
+        callbacks: [{
+          handleLLMNewToken(token: string) {
+            response += token;
+            res.write(token);
+          }
+        }]
       }
     );
+    res.end();
 
-    const htmlResponse = this.markdownService.convertToHtml(response);
-    return { htmlResponse }
+    return { response }
   }
 
   private async finalizeChat(
@@ -468,7 +475,7 @@ export class MessagesService {
       }
     );
 
-    await this.updateSubscriptionQueryCount(subscription);
+    this.updateSubscriptionQueryCount(subscription);
 
     let chatTitle: string;
     if (chat.title.toLowerCase() == "new chat" && chat.messages.length) {

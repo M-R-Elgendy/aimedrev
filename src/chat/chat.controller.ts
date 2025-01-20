@@ -32,6 +32,12 @@ export class ChatController {
     return this.chatService.findOne(params.id);
   }
 
+  @Get(':id/title')
+  @Roles([Role.ADMIN, Role.PAID_USER])
+  getChatTitle(@Param() params: ObjectIdDto) {
+    return this.chatService.getChatTitle(params.id);
+  }
+
   @Patch(':id')
   @Roles([Role.ADMIN, Role.PAID_USER])
   update(@Param() params: ObjectIdDto, @Body() updateChatDto: UpdateChatDto) {

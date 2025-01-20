@@ -1,8 +1,9 @@
-import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpStatus, Injectable, MethodNotAllowedException, NotFoundException } from '@nestjs/common';
 import { CreateChatDto, } from './dto/create-chat.dto';
 import { UpdateChatDto } from './dto/update-chat.dto';
 import { AuthContext } from 'src/auth/auth.context';
 import { PrismaClient, CHAT_TYPES } from '@prisma/client';
+
 @Injectable()
 export class ChatService {
 
@@ -14,38 +15,12 @@ export class ChatService {
   async create(createChatDto: CreateChatDto) {
     try {
       const userId = this.authContext.getUser().id;
-      const userName = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-
-      let welcomeMessage: string = '';
-      if (createChatDto.type === CHAT_TYPES.DIAGNOSTIC) {
-        welcomeMessage = `Hello, Dr. ${userName.name}! To provide the most accurate and helpful recommendations, please share a comprehensive clinical case summary, including:\n\n` +
-          '- **Age**\n' +
-          '- **Sex**\n' +
-          '- **Relevant past medical history**\n' +
-          '- **Current medications**\n' +
-          '- **Presenting symptoms**\n' +
-          '- **Associated symptoms**\n' +
-          '- **Descriptions of relevant studies** (e.g., lab results, imaging findings)\n' +
-          '- **Details of the illness course**\n' +
-          '- **Any additional information** you might share when consulting another physician\n\n' +
-          'The more thorough the information, the better I can assist you.';
-      } else {
-        welcomeMessage = `Hi Dr. ${userName.name}! How can I assist you?`;
-      }
-
 
       const createdChat = await this.prisma.chat.create({
         data: {
           type: createChatDto.type,
           userId: userId,
-          messages: [{
-            role: 'PhysAID',
-            content: {
-              message: welcomeMessage,
-              images: [],
-              pdfs: []
-            }
-          }]
+          messages: []
         },
       });
 
@@ -76,6 +51,7 @@ export class ChatService {
           type: true,
           title: true,
           messages: false,
+          updatedAt: true
         }
       });
 
@@ -102,6 +78,32 @@ export class ChatService {
           type: true,
           title: true,
           messages: true,
+          updatedAt: true
+        }
+      });
+
+      if (!chat) throw new NotFoundException('Chat not found');
+      return {
+        message: "Chats fetched successfully",
+        data: { chat },
+        statusCode: HttpStatus.OK
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getChatTitle(id: string) {
+    try {
+      const chat = await this.prisma.chat.findFirst({
+        where: {
+          id: id,
+          userId: this.authContext.getUser().id,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          title: true,
         }
       });
 
@@ -117,7 +119,7 @@ export class ChatService {
   }
 
   async update(id: string, updateChatDto: UpdateChatDto) {
-    return `This action updates a #${id} chat`;
+    throw new MethodNotAllowedException('Method not allowed')
   }
 
   async remove(id: string) {
