@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { CreateMessageDto, SummeryEvaluationDto } from './dto/create-message.dto';
 import { OpenAIService } from 'src/openai/openai.service';
 
 import { Chat, PrismaClient } from '@prisma/client';
@@ -491,6 +491,12 @@ export class MessagesService {
     });
 
     return { chatTitle }
+  }
+
+  async summaryEvaluation(summeryEvaluationDto: SummeryEvaluationDto): Promise<{ message: string, evaluation: Array<string> }> {
+    console.log(summeryEvaluationDto.summary)
+
+    return { message: "", evaluation: [] }
   }
 
 }

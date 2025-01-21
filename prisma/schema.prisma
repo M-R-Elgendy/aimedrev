@@ -232,8 +232,20 @@ model Chat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  User   User   @relation(fields: [userId], references: [id])
-  userId String @db.ObjectId
+  User            User              @relation(fields: [userId], references: [id])
+  userId          String            @db.ObjectId
+  CasesEvaluation CasesEvaluation[]
 
   @@index([userId, id])
+}
+
+model CasesEvaluation {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  evaluations Json[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Chat   Chat   @relation(fields: [chatId], references: [id])
+  chatId String @db.ObjectId
 }

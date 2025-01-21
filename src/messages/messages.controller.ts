@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { MessagesService } from './messages.service';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { CreateMessageDto, SummeryEvaluationDto } from './dto/create-message.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Roles } from '../global/decorators/role.decorator';
@@ -45,6 +45,12 @@ export class MessagesController {
     /* const response = await */ this.messagesService.createEvidenceMessage(createMessageDto, res);
     // return response;
 
+  }
+
+  @Post('summary-evaluation')
+  @Roles([Role.ADMIN, Role.PAID_USER])
+  async createCaseMessage(@Body() summeryEvaluationDto: SummeryEvaluationDto) {
+    return this.messagesService.summaryEvaluation(summeryEvaluationDto)
   }
 
 }
