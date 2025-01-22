@@ -1,14 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateMessageDto, SummeryEvaluationDto } from './dto/create-message.dto';
 import { OpenAIService } from 'src/openai/openai.service';
-
+import { z } from 'zod';
+import { ChatOpenAI } from "@langchain/openai";
 import { Chat, PrismaClient } from '@prisma/client';
 import { AuthContext } from 'src/auth/auth.context';
 import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
 import { CHAT_TYPES } from '@prisma/client';
 import { MarkdownService } from 'src/markdown/markdown.service';
-
+import { RunnablePassthrough} from "@langchain/core/runnables";
 import { ConversationSummaryBufferMemory } from "langchain/memory";
 import { Calculator } from "@langchain/community/tools/calculator";
 
@@ -28,6 +29,7 @@ import { loadPyodide } from "pyodide";
 import { ExaSearchResults } from '@langchain/exa';
 import Exa from 'exa-js';
 import { Response } from 'express';
+import { integer } from 'aws-sdk/clients/cloudfront';
 
 @Injectable()
 export class MessagesService {
@@ -493,10 +495,68 @@ export class MessagesService {
     return { chatTitle }
   }
 
-  async summaryEvaluation(summeryEvaluationDto: SummeryEvaluationDto): Promise<{ message: string, evaluation: Array<string> }> {
-    console.log(summeryEvaluationDto.summary)
+  async summaryEvaluation(summeryEvaluationDto: SummeryEvaluationDto): Promise<{ completenessRating?: number, recommendedImprovements?:string[] }> {
+    const summary = summeryEvaluationDto.summary;
+    console.log(summary)
 
-    return { message: "", evaluation: [] }
+    // Primary prompt for the RAG chain
+    const ragPrompt = ChatPromptTemplate.fromMessages(
+      [
+        [
+          "system",
+          `You are a medical case reviewer. Your task is to encourage the physician to provide more details about the patient that will help
+           later processing steps generate helpful guidance for the physician's query. Follow these steps:
+           1) Read the provided patient summary carefully.
+           2) Assess the completeness of the summary based on essential patient background—for example, relevant demographics,
+            presenting complaint, relevant medical history, significant clinical findings, and any additional context important to
+            understanding the patient's condition.
+           3) Select one answer from the following set of possible ratings for the summary's completeness:
+            1: Very Incomplete
+            2: Somewhat Incomplete
+            3: Sufficient
+            4: Complete
+            5: Very Complete
+           4) List any recommended improvements or missing elements that would help the physician make the summary more complete, if applicable.
+            If no improvements are needed, return an empty list.
+
+          Important Notes:
+          Base your evaluation strictly on the information provided in the summary; do not infer or rely on external knowledge.`
+        ],
+        [
+          "human",
+          `Case summary (possible with physicians query): {summary}`
+        ]
+      ]
+    );
+
+
+  // Define a schema for structured output
+  const ragOutputSchema = z.object({
+    completenessRating: z
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .describe("The completeness rating for the patient summary, on a scale from 1 (very incomplete) to 5 (very complete)."),
+    recommendedImprovements: z
+      .array(z.string())
+      .describe(
+        "A list of recommendations or missing elements that would make the summary more complete. If none are needed, the array can contain a statement such as 'No further improvements are needed.'"
+      ),
+  }).describe(`Structured evaluation of the patient summary's completeness.`);
+
+    // LLM for generating the answer (RAG step)
+    const ragLLM = new ChatOpenAI({
+      model: "gpt-4o",
+      temperature: 0.0,
+      verbose: true
+    });
+    
+    // Create RAG chain (prompt + LLM with structured output)
+    const ragChain = ragPrompt.pipe(ragLLM.withStructuredOutput(ragOutputSchema));
+
+    return ragChain.invoke({summary: summary});
+    
   }
 
 }

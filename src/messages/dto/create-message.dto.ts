@@ -24,6 +24,6 @@ export class CreateMessageDto {
 export class SummeryEvaluationDto {
     @IsString()
     @IsNotEmpty()
-    @MinLength(50)
+    @MinLength(30)
     summary: string;
 }

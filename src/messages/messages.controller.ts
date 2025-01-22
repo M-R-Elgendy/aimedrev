@@ -48,7 +48,7 @@ export class MessagesController {
   }
 
   @Post('summary-evaluation')
-  @Roles([Role.ADMIN, Role.PAID_USER])
+  //@Roles([Role.ADMIN, Role.PAID_USER])
   async createCaseMessage(@Body() summeryEvaluationDto: SummeryEvaluationDto) {
     return this.messagesService.summaryEvaluation(summeryEvaluationDto)
   }
