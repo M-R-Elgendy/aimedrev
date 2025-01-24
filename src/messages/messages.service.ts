@@ -8,8 +8,7 @@ import { AuthContext } from 'src/auth/auth.context';
 import { UserService } from 'src/user/user.service';
 import { Utlis } from 'src/global/utlis';
 import { CHAT_TYPES } from '@prisma/client';
-import { MarkdownService } from 'src/markdown/markdown.service';
-import { RunnablePassthrough} from "@langchain/core/runnables";
+import { RunnablePassthrough } from "@langchain/core/runnables";
 import { ConversationSummaryBufferMemory } from "langchain/memory";
 import { Calculator } from "@langchain/community/tools/calculator";
 
@@ -40,8 +39,7 @@ export class MessagesService {
     private readonly authContext: AuthContext,
     private readonly openaiService: OpenAIService,
     private readonly userService: UserService,
-    private readonly utlis: Utlis,
-    private readonly markdownService: MarkdownService
+    private readonly utlis: Utlis
   ) { }
 
   async createGeneralMessage(createMessageDto: CreateMessageDto, res: Response) {
@@ -495,7 +493,7 @@ export class MessagesService {
     return { chatTitle }
   }
 
-  async summaryEvaluation(summeryEvaluationDto: SummeryEvaluationDto): Promise<{ completenessRating?: number, recommendedImprovements?:string[] }> {
+  async summaryEvaluation(summeryEvaluationDto: SummeryEvaluationDto): Promise<{ completenessRating?: number, recommendedImprovements?: string[] }> {
     const summary = summeryEvaluationDto.summary;
     console.log(summary)
 
@@ -530,20 +528,20 @@ export class MessagesService {
     );
 
 
-  // Define a schema for structured output
-  const ragOutputSchema = z.object({
-    completenessRating: z
-      .number()
-      .int()
-      .min(1)
-      .max(5)
-      .describe("The completeness rating for the patient summary, on a scale from 1 (very incomplete) to 5 (very complete)."),
-    recommendedImprovements: z
-      .array(z.string())
-      .describe(
-        "A list of recommendations or missing elements that would make the summary more complete. If none are needed, the array can contain a statement such as 'No further improvements are needed.'"
-      ),
-  }).describe(`Structured evaluation of the patient summary's completeness.`);
+    // Define a schema for structured output
+    const ragOutputSchema = z.object({
+      completenessRating: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .describe("The completeness rating for the patient summary, on a scale from 1 (very incomplete) to 5 (very complete)."),
+      recommendedImprovements: z
+        .array(z.string())
+        .describe(
+          "A list of recommendations or missing elements that would make the summary more complete. If none are needed, the array can contain a statement such as 'No further improvements are needed.'"
+        ),
+    }).describe(`Structured evaluation of the patient summary's completeness.`);
 
     // LLM for generating the answer (RAG step)
     const ragLLM = new ChatOpenAI({
@@ -551,12 +549,12 @@ export class MessagesService {
       temperature: 0.0,
       verbose: true
     });
-    
+
     // Create RAG chain (prompt + LLM with structured output)
     const ragChain = ragPrompt.pipe(ragLLM.withStructuredOutput(ragOutputSchema));
 
-    return ragChain.invoke({summary: summary});
-    
+    return ragChain.invoke({ summary: summary });
+
   }
 
 }
