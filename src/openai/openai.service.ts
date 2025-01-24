@@ -67,4 +67,20 @@ export class OpenAIService {
         return completion.choices[0].message.content;
     }
 
+    ragLLM() {
+        return new ChatOpenAI({
+            model: "gpt-4o",
+            temperature: 0.0,
+            verbose: false
+        });
+    }
+
+    validationLLM() {
+        return new ChatOpenAI({
+            model: "gpt-4o",
+            temperature: 0.0,
+            verbose: false
+        });
+    }
+
 }

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { CreateMessageDto, SummeryEvaluationDto } from './dto/create-message.dto';
-import { OpenAIService } from 'src/openai/openai.service';
 import { ChatOpenAI } from "@langchain/openai";
 import { CHAT_TYPES } from '@prisma/client';
 import { Calculator } from "@langchain/community/tools/calculator";
@@ -9,10 +8,11 @@ import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { PythonInterpreterTool } from "@langchain/community/experimental/tools/pyinterpreter";
 import { loadPyodide } from "pyodide";
 import { ExaSearchResults } from '@langchain/exa';
-import Exa from 'exa-js';
 import { Response } from 'express';
 import { MessagesUtlis } from './utlis/utlis';
-import { ragOutputSchema } from './dto/rag-output.schema';
+import { summrayEvRagOutputSchema } from './z-schemas/rag-output.schema';
+import { OpenAIService } from 'src/openai/openai.service';
+import Exa from 'exa-js';
 
 
 @Injectable()
@@ -20,8 +20,8 @@ export class MessagesService {
 
   private readonly exa = new Exa(process.env.EXA_API_KEY);
   constructor(
-    private readonly openaiService: OpenAIService,
-    private readonly messagesUtlis: MessagesUtlis
+    private readonly messagesUtlis: MessagesUtlis,
+    private readonly openaiService: OpenAIService
   ) { }
 
   async createGeneralMessage(createMessageDto: CreateMessageDto, res: Response) {
@@ -166,18 +166,9 @@ export class MessagesService {
       ]
     );
 
-    // LLM for generating the answer (RAG step)
-    const ragLLM = new ChatOpenAI({
-      model: "gpt-4o",
-      temperature: 0.0,
-      verbose: true
-    });
-
-    // Create RAG chain (prompt + LLM with structured output)
-    const ragChain = ragPrompt.pipe(ragLLM.withStructuredOutput(ragOutputSchema));
-
+    const ragLLM = this.openaiService.ragLLM();
+    const ragChain = ragPrompt.pipe(ragLLM.withStructuredOutput(summrayEvRagOutputSchema));
     return ragChain.invoke({ summary: summary });
-
   }
 
 }
