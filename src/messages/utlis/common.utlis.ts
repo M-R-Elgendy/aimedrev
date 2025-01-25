@@ -62,8 +62,8 @@ export class MessagesUtlis {
 
         const subscription = userSubscriptions[userSubscriptions.length - 1]?.id;
 
-        if (chatType != CHAT_TYPES.GENERAL) {
-            throw new BadRequestException('This chat is not a general chat');
+        if (chatType != chat.type) {
+            throw new BadRequestException(`This chat is not a ${chatType} chat`);
         }
 
         return { chat, subscription };
@@ -365,5 +365,9 @@ export class MessagesUtlis {
         humanMessagePromptTemplate.push({ text: query });
         return { systemMessagePromptTemplate, humanMessagePromptTemplate }
 
+    }
+
+    generateLink(pmcId: number, text: string) {
+        return `<a href="https://pmc.ncbi.nlm.nih.gov/articles/${pmcId}">${text}</a>`;
     }
 }

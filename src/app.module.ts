@@ -33,6 +33,10 @@ import { MessagesModule } from './messages/messages.module';
 import { AuthService } from './auth/auth.service';
 import { UserService } from './user/user.service';
 import { JwtService } from '@nestjs/jwt';
+import { PineconeUtlis } from './messages/utlis/pinecone.utlis';
+import { Pinecone } from '@pinecone-database/pinecone';
+import { CustomEmbeddings } from './messages/utlis/custom-embeddings.utlis';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -95,7 +99,10 @@ import { JwtService } from '@nestjs/jwt';
     ChatService,
     AuthService,
     UserService,
-    JwtService
+    JwtService,
+    PineconeUtlis,
+    Pinecone,
+    CustomEmbeddings
   ],
 
 })

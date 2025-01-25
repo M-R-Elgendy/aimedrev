@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { CreateMessageDto, SummeryEvaluationDto } from './dto/create-message.dto';
-import { ChatOpenAI } from "@langchain/openai";
 import { CHAT_TYPES } from '@prisma/client';
 import { Calculator } from "@langchain/community/tools/calculator";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
@@ -9,19 +8,21 @@ import { PythonInterpreterTool } from "@langchain/community/experimental/tools/p
 import { loadPyodide } from "pyodide";
 import { ExaSearchResults } from '@langchain/exa';
 import { Response } from 'express';
-import { MessagesUtlis } from './utlis/utlis';
+import { MessagesUtlis } from './utlis/common.utlis';
 import { summrayEvRagOutputSchema } from './z-schemas/rag-output.schema';
 import { OpenAIService } from 'src/openai/openai.service';
 import Exa from 'exa-js';
-
-
+import { MultiRetriever } from './utlis/multi-retriever.utlis';
+import { RagChain } from './utlis/rag-chain.utlis';
 @Injectable()
 export class MessagesService {
 
   private readonly exa = new Exa(process.env.EXA_API_KEY);
   constructor(
     private readonly messagesUtlis: MessagesUtlis,
-    private readonly openaiService: OpenAIService
+    private readonly openaiService: OpenAIService,
+    private readonly multiRetriever: MultiRetriever,
+    private readonly ragChain: RagChain
   ) { }
 
   async createGeneralMessage(createMessageDto: CreateMessageDto, res: Response) {
@@ -66,7 +67,7 @@ export class MessagesService {
 
     try {
 
-      const { chat, subscription } = await this.messagesUtlis.validateUserChatAndSubscription(createMessageDto.chatId, CHAT_TYPES.GENERAL)
+      const { chat, subscription } = await this.messagesUtlis.validateUserChatAndSubscription(createMessageDto.chatId, CHAT_TYPES.DIAGNOSTIC)
       const { chatMemory } = this.messagesUtlis.getChatMemoryForLLM(chat);
 
       const tools = [new Calculator({ verbose: false })];
@@ -93,7 +94,7 @@ export class MessagesService {
 
     try {
 
-      const { chat, subscription } = await this.messagesUtlis.validateUserChatAndSubscription(createMessageDto.chatId, CHAT_TYPES.GENERAL)
+      const { chat, subscription } = await this.messagesUtlis.validateUserChatAndSubscription(createMessageDto.chatId, CHAT_TYPES.EVIDENCE_BASED)
       const { chatMemory } = this.messagesUtlis.getChatMemoryForLLM(chat);
 
       const exaTool = new ExaSearchResults({
@@ -132,6 +133,83 @@ export class MessagesService {
 
   }
 
+  async createEvidenceMessageV2(createMessageDto: CreateMessageDto, res: Response) {
+
+    try {
+      const { chat, subscription } = await this.messagesUtlis.validateUserChatAndSubscription(createMessageDto.chatId, CHAT_TYPES.EVIDENCE_BASED)
+      const retrievedDocs = await this.multiRetriever.retrieve(createMessageDto.message, 15);
+
+      if (retrievedDocs.length < 1) {
+        res.write("I couldn't find any relevant articles that could answer your question in our database.");
+        res.end();
+      }
+
+      const chain = await this.ragChain.getRagChain();
+
+      const result = await chain.invoke({
+        question: createMessageDto.message,
+        docs: retrievedDocs,
+      });
+      const { answer, citations } = result.quoted_answer;
+      const verdict = result.validation.verdict;
+
+      if (verdict == 'NO') {
+        console.log(answer);
+        res.write("I couldn't find any relevant articles that could answer your question.");
+        res.end();
+      }
+
+      let response: string = answer;
+      response += "\n\nSources:\n";
+      res.write(response);
+
+      let articles = new Set();
+      let num = 0;
+
+      citations.forEach(cit => {
+        num++;
+        const c = retrievedDocs[cit];
+
+        if ('source' in c.metadata && c.metadata['source'] == 'PMC') {
+          const { "title": title, "date": date, "pmc-id": pmcId } = c.metadata;
+
+          const link = this.messagesUtlis.generateLink(pmcId, title + ", " + date[1] + ".")
+          if (!articles.has(link)) {
+            response += '\n' + num + '. ' + link;
+            res.write('\n' + num + '. ' + link);
+          }
+          articles.add(link);
+        } else {
+          const { "title": title, "publishedDate": publishedDate, "url": url } = c.metadata;
+
+          // Generate link as RMD
+          const link = `[${title}.${publishedDate.slice(0, 4)}](${url})`;
+
+          if (!articles.has(link)) {
+            response += '\n' + num + '. ' + link;
+            res.write('\n' + num + '. ' + link);
+          }
+          articles.add(link);
+        }
+
+      });
+
+      res.end();
+
+      const { chatTitle } = await this.messagesUtlis.finalizeChat(subscription, chat, createMessageDto, response);
+
+      return {
+        chatId: chat.id,
+        chatTitle: chatTitle,
+        response: response,
+        code: 200
+      }
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
+
+  }
 
   async summaryEvaluation(summeryEvaluationDto: SummeryEvaluationDto): Promise<{ completenessRating?: number, recommendedImprovements?: string[] }> {
     const summary = summeryEvaluationDto.summary;
@@ -168,7 +246,13 @@ export class MessagesService {
 
     const ragLLM = this.openaiService.ragLLM();
     const ragChain = ragPrompt.pipe(ragLLM.withStructuredOutput(summrayEvRagOutputSchema));
-    return ragChain.invoke({ summary: summary });
+    const result = await ragChain.invoke({ summary: summary });
+
+    // Save result and connect it with chat id
+    // Also we can return Eval Id with firest req and front end should send it aftter that with any new Eval request
+    // Then create an endpoint to match the chatId wih Eval Id if the chat started
+
+    return result;
   }
 
 }

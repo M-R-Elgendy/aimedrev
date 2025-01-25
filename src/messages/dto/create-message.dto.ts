@@ -1,4 +1,4 @@
-import { IsArray, IsMongoId, IsNotEmpty, IsOptional, IsString, Min, MinLength } from "class-validator";
+import { IsArray, IsMongoId, IsNotEmpty, IsOptional, IsString, MinLength } from "class-validator";
 
 export class CreateMessageDto {
     @IsNotEmpty()
@@ -22,6 +22,17 @@ export class CreateMessageDto {
 }
 
 export class SummeryEvaluationDto {
+
+    @IsMongoId()
+    @IsNotEmpty()
+    @IsOptional()
+    evaluationId?: string;
+
+    @IsMongoId()
+    @IsNotEmpty()
+    @IsOptional()
+    chatId?: string;
+
     @IsString()
     @IsNotEmpty()
     @MinLength(30)
